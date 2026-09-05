@@ -1,0 +1,48 @@
+/* R28 typography baseline: readable type without wildcard class overrides. */
+:root{
+  --ui-font:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --ui-text:#f2f7ff;
+  --ui-muted:#aebdd0;
+  --ui-dim:#7f91a8;
+  --ui-focus:#55e6ba;
+  --ui-control-min:44px;
+  --ui-body-size:16px;
+  --ui-small-size:13px;
+  --ui-line:1.5;
+}
+html{font-size:16px!important;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body,button,input,select,textarea,[role="button"]{
+  font-family:var(--ui-font)!important;
+  font-synthesis:none;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+body{font-size:var(--ui-body-size)!important;line-height:var(--ui-line)!important;color:var(--ui-text)}
+button,input,select,textarea{font-size:15px;line-height:1.3}
+button,[role="button"]{min-height:var(--ui-control-min);font-weight:750;letter-spacing:.01em}
+button:focus-visible,[role="button"]:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:3px solid var(--ui-focus)!important;outline-offset:3px!important
+}
+.title-font{font-family:var(--ui-font)!important}
+.modal-eyebrow,.menu-kicker,.r13-phase-eyebrow{font-family:var(--ui-font)!important}
+.modal-layer[aria-hidden="true"]{pointer-events:none}
+body.ui-modal-open{overflow:hidden}
+
+/* Stable draft hooks retained for game.js. */
+.ui-draft-card{max-width:calc(100vw - 24px)!important}
+.ui-draft-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important}
+.ui-turn-label{font-family:var(--ui-font)!important;font-weight:850!important}
+.ui-battle-analysis{overflow:auto!important}
+.ui-card-motion{transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .3s ease,box-shadow .3s ease,filter .3s ease!important}
+.ui-card-motion:hover{transform:translateY(-3px)}
+
+/* CPU presentation remains lightweight and independent of layout. */
+.cpu-thinking-overlay{position:fixed;z-index:2147482000;left:50%;top:clamp(82px,12vh,150px);transform:translate(-50%,-12px);display:flex;align-items:center;gap:10px;padding:12px 18px;border:1px solid rgba(85,230,186,.48);border-radius:999px;background:rgba(5,16,28,.94);box-shadow:0 16px 42px rgba(0,0,0,.34);color:#eafff8;font:750 15px/1.2 var(--ui-font);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+.cpu-thinking-overlay.show{opacity:1;transform:translate(-50%,0)}
+.cpu-thinking-dot{width:9px;height:9px;border-radius:50%;background:#55e6ba;box-shadow:0 0 0 0 rgba(85,230,186,.45);animation:cpuThinkingPulse 1s ease-in-out infinite}
+@keyframes cpuThinkingPulse{50%{box-shadow:0 0 0 8px rgba(85,230,186,0)}}
+
+@media(max-width:700px){:root{--ui-control-min:46px}.cpu-thinking-overlay{max-width:calc(100vw - 24px);font-size:14px}}
+@media(max-width:360px){html{font-size:15px!important}}
+@media(max-height:460px) and (orientation:landscape){.cpu-thinking-overlay{top:58px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}.cpu-thinking-overlay{transition:none!important}}
