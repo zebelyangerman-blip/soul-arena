@@ -1,0 +1,47 @@
+/* R32 — header collision repair + support removal layout cleanup. */
+body.r32-ui .r32-header-actions{
+  position:absolute;
+  z-index:24;
+  left:max(12px,env(safe-area-inset-left));
+  top:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  max-width:calc(50% - 150px);
+}
+body.r32-ui #sound-toggle-btn,body.r32-ui #game-menu-btn{
+  position:static!important;
+  left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+  min-height:40px!important;
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+body.r32-ui #header-title{padding-inline:clamp(92px,16vw,230px);text-wrap:balance}
+body.r32-ui .r16-hub-footer-actions{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)!important}
+body.r32-ui .r16-hub-footer-actions>.r16-quick-btn{width:100%;min-width:0}
+@media (max-width:1100px){
+  body.r32-ui #sound-label,body.r32-ui #game-menu-btn .font-bold{display:none!important}
+  body.r32-ui .r32-header-actions{max-width:none}
+  body.r32-ui #header-title{padding-inline:96px}
+}
+@media (max-width:639px){
+  body.r32-ui .r32-header-actions{left:max(6px,env(safe-area-inset-left));top:6px;gap:6px}
+  body.r32-ui #sound-toggle-btn,body.r32-ui #game-menu-btn{min-width:42px!important;min-height:42px!important;padding:8px!important;justify-content:center}
+  body.r32-ui #header-title{padding-inline:86px}
+  body.r32-ui .r16-hub-footer-actions{grid-template-columns:1fr!important}
+}
+@media (max-width:359px){
+  body.r32-ui #header-title{padding-inline:78px;font-size:1rem!important;letter-spacing:.06em!important}
+}
+@media (max-width:639px){
+  body.r32-ui:not([data-screen="menu"]) #header-title{
+    margin-top:44px;
+    padding-inline:8px;
+    font-size:clamp(.9rem,4vw,1rem)!important;
+    letter-spacing:.08em!important;
+    line-height:1.1!important;
+  }
+}
+@media (max-width:1100px){
+  body.r32-ui #sound-toggle-btn,body.r32-ui #game-menu-btn{min-width:40px!important;justify-content:center}
+}
