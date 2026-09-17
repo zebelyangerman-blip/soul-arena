@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Арена Душ: Битва Миров</title>
+<meta content="#050816" name="theme-color"/>
+<meta content="Тактический автобатлер 5 на 5: драфт бойцов, Прайм-формы, три арены, игра вдвоём, четыре честных уровня компьютерного соперника и Elo-рейтинг за серии до 5." name="description"/>
+<meta content="dark" name="color-scheme"/>
+<link href="css/tailwind.generated.css" rel="stylesheet"/>
+<link href="css/game.css" rel="stylesheet"/>
+<script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.12/dist/browser.min.js"></script>
+<link href="css/ui.css" rel="stylesheet"/>
+<link href="css/icons.css" rel="stylesheet"/>
+<link href="css/r28-layout.css" rel="stylesheet"/>
+<link href="css/r29-performance.css" rel="stylesheet"/>
+<link href="css/r32-ui.css" rel="stylesheet"/>
+<link href="css/r33-tutorial.css" rel="stylesheet"/>
+<link href="css/r34-explanations.css" rel="stylesheet"/>
+<link href="css/r37-desktop-fit.css" rel="stylesheet"/>
+<link href="css/r41-tutorial.css" rel="stylesheet"/>
+</head>
+<body class="flex flex-col relative r23-ui r28-ui r29-ui r31-ui r32-ui r33-ui r34-ui r37-ui r41-ui game-ui" data-reduced-motion="false" data-screen="menu" data-ui-theme="ember">
+<div aria-live="polite" class="r13-boot-splash" id="r13-boot-splash" role="status">
+<div class="r13-boot-mark"><span>魂</span></div>
+<strong>АРЕНА ДУШ</strong>
+<small>Открываем врата арены…</small>
+<div class="r13-boot-line"><i></i></div>
+</div>
+<div id="bg-overlay"></div>
+<canvas id="spirit-canvas"></canvas>
+<div id="shockwave-fx"></div>
+<audio id="bg-music" loop="" preload="none"></audio>
+<!-- HEADER / TOP BAR -->
+<header class="text-center py-3 px-4 bg-slate-950/85 backdrop-filter backdrop-blur-md border-b border-slate-800/80 z-10 sticky top-0 shadow-2xl flex flex-col items-center justify-center relative">
+<!-- Header controls -->
+<div class="r32-header-actions" id="header-left-actions">
+<button aria-label="Звук" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 p-2 rounded-xl text-xs flex items-center gap-1.5 transition transform active:scale-95 shadow-md" id="sound-toggle-btn" onclick="toggleAudioMute()" title="Звук" type="button">
+<span id="sound-icon" data-ui-icon="volume" data-icon-size="20"></span>
+<span class="hidden sm:inline font-bold" id="sound-label">Звук</span>
+</button>
+<button aria-label="Меню игры" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 p-2 rounded-xl text-xs flex items-center gap-1.5 transition transform active:scale-95 shadow-md" id="game-menu-btn" onclick="openPauseMenu()" title="Меню" type="button">
+<span data-ui-icon="menu" data-icon-size="20"></span><span class="hidden md:inline font-bold">Меню</span>
+</button>
+</div>
+<!-- VK User Badge -->
+<div class="hidden absolute right-3 top-3 items-center gap-2 bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-full text-xs" id="vk-user-badge">
+<img alt="VK" class="w-5 h-5 rounded-full" id="vk-avatar"/>
+<span class="font-bold text-slate-300 truncate max-w-[80px]" id="vk-name">...</span>
+</div>
+<h1 class="title-font text-xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-red-500 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(239,68,68,0.4)]" id="header-title">
+            АРЕНА ДУШ: БИТВА МИРОВ
+        </h1>
+<p class="text-slate-400 text-xs md:text-sm mt-0.5 font-bold tracking-widest uppercase" id="game-status">Жребий Первого Хода</p>
+<div class="mt-1.5 flex flex-wrap items-center justify-center gap-3">
+<div class="text-xs font-black tracking-widest text-slate-300 bg-slate-900/90 inline-flex items-center px-4 py-1 rounded-full border border-slate-800 shadow-inner gap-2" id="series-score-container">
+<span>СЧЁТ СЕРИИ (ДО 5 ПОБЕД):</span>
+<span class="text-blue-400 text-sm md:text-base font-black" id="p1-series-score">0</span>
+<span class="text-slate-600">:</span>
+<span class="text-orange-400 text-sm md:text-base font-black" id="p2-series-score">0</span>
+</div>
+</div>
+<div class="hidden mt-2 text-xs font-semibold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-3 py-1 rounded-lg max-w-xl mx-auto shadow-md backdrop-blur-sm" id="location-banner">
+<span class="font-bold uppercase tracking-wider text-amber-400" id="location-name"></span>: <span class="text-slate-300 text-[11px]" id="location-desc"></span>
+</div>
+<nav aria-label="Этап матча" class="phase-rail" id="phase-rail">
+<span data-phase-step="initiative"><b>1</b><em>Жребий</em></span>
+<i></i>
+<span data-phase-step="draft"><b>2</b><em>Драфт</em></span>
+<i></i>
+<span data-phase-step="bonus"><b>3</b><em>Прайм</em></span>
+<i></i>
+<span data-phase-step="location"><b>4</b><em>Арена</em></span>
+<i></i>
+<span data-phase-step="battle"><b>5</b><em>Бой</em></span>
+</nav>
+</header>
+<main class="flex-grow p-4 md:p-6 flex flex-col items-center justify-center w-full max-w-7xl mx-auto relative z-10" id="main-container">
+<div class="r41-coach hidden" id="r41-coach" aria-live="polite">
+<div class="r41-coach-copy"><small>УЧЕБНЫЙ МАТЧ</small><strong id="r41-coach-title">Следующий шаг</strong><p id="r41-coach-text"></p></div>
+<button class="r41-coach-next hidden" id="r41-coach-next" type="button" onclick="r41CoachContinue()">ПРОДОЛЖИТЬ</button>
+</div>
+<section aria-label="Главное меню" class="menu-screen w-full flex flex-col items-center justify-center text-center" id="main-menu-screen">
+<div class="menu-ambient menu-ambient-a"></div>
+<div class="menu-ambient menu-ambient-b"></div>
+<div class="menu-content r16-hub-content">
+<div class="menu-kicker"><span data-ui-icon="swords" data-icon-size="16"></span> ТАКТИЧЕСКИЙ АВТОБАТЛЕР 5 × 5 <span data-ui-icon="swords" data-icon-size="16"></span></div>
+<div class="r16-hero-row">
+<div class="r16-brand-block">
+<div aria-hidden="true" class="menu-sigil"><span>魂</span></div>
+<h1 class="menu-title">АРЕНА ДУШ</h1>
+<p class="menu-subtitle">БИТВА МИРОВ</p>
+<p class="menu-lead">Соберите отряд из пяти бойцов, выберите Прайм-формы и проведите команду через серию последовательных дуэлей.</p>
+<div aria-label="Ключевые особенности" class="menu-stat-row">
+<span><b>75</b> бойцов</span>
+<span><b>5 × 5</b> драфт</span>
+<span><b>3</b> арены</span>
+<span>до <b>5</b> побед</span>
+</div>
+</div>
+<div aria-label="Командный центр" class="r16-hub-panel">
+<div class="r16-profile-strip">
+<div aria-hidden="true" class="r16-profile-avatar">
+<img alt="" class="hidden" id="hub-vk-avatar"/>
+<span id="hub-vk-fallback">VK</span>
+</div>
+<div class="r16-profile-copy">
+<small>КОМАНДНЫЙ ЦЕНТР</small>
+<b id="hub-player-name">Игрок</b>
+<span><b data-player-title="">Рекрут Арены</b> · прогресс и коллекция синхронизируются между вашими устройствами.</span>
+</div>
+<div class="r19-hub-metrics">
+<div class="r19-hub-rating ui-resource ui-resource--rating" data-resource="rating" title="Офлайн-рейтинг против ИИ">
+<i data-ui-icon="rating" data-icon-size="24"></i><b id="hub-rating">800</b><span id="hub-rank">Новичок</span>
+</div>
+<button class="r20-hub-coins ui-resource ui-resource--coin" data-resource="coins" onclick="openEconomyInfo()" title="Монеты" type="button">
+<i data-ui-icon="coin" data-icon-size="24"></i><b data-coin-balance="" id="hub-coins">0</b><span>монеты</span>
+</button>
+<div class="r16-hub-currency ui-resource ui-resource--shard" data-resource="shards" title="Осколки оформления">
+<i data-ui-icon="shard" data-icon-size="24"></i><b id="hub-shards">0</b><span>осколки</span>
+</div>
+</div>
+</div>
+<div class="menu-actions r16-menu-actions">
+<button class="menu-primary-btn" onclick="startGameFromMenu()"><span>ИГРАТЬ</span><span data-ui-icon="play" data-icon-size="20"></span></button>
+
+<div class="menu-action-grid r16-hub-grid">
+<button class="menu-secondary-btn" onclick="openFeaturePreview('profile')"><span data-ui-icon="profile" data-icon-size="22"></span><span>Профиль</span><small>готово</small></button>
+<button class="menu-secondary-btn" onclick="openFeaturePreview('rating')"><span data-ui-icon="rating" data-icon-size="22"></span><span>Рейтинг</span><small>Elo</small></button>
+<button class="menu-secondary-btn" onclick="openFeaturePreview('bestiary')"><span data-ui-icon="bestiary" data-icon-size="22"></span><span>Бестиарий</span><small id="hub-bestiary-count">0/75</small></button>
+<button class="menu-secondary-btn" onclick="openShop()"><span data-ui-icon="shop" data-icon-size="22"></span><span>Магазин</span><small id="hub-shop-count">9/48</small></button>
+<button class="menu-secondary-btn" onclick="openFeaturePreview('achievements')"><span data-ui-icon="trophy" data-icon-size="22"></span><span>Достижения</span><small id="hub-achievement-count">0/50</small></button>
+<button class="menu-secondary-btn" onclick="openRules(false)"><span data-ui-icon="rules" data-icon-size="22"></span><span>Правила</span><small>справка</small></button>
+<button class="menu-secondary-btn" onclick="openR41Tutorial(false)"><span data-ui-icon="target" data-icon-size="22"></span><span>Обучение</span><small>практика</small></button>
+<button class="menu-secondary-btn" onclick="openFutureUpdates()"><span data-ui-icon="future" data-icon-size="22"></span><span>Будущее</span><small>online</small></button>
+<button class="menu-secondary-btn" onclick="openAudioSettings()"><span data-ui-icon="settings" data-icon-size="22"></span><span>Настройки</span><small>звук</small></button>
+</div>
+<div class="r16-hub-footer-actions r20-hub-footer-actions">
+<button class="r16-quick-btn r20-rewarded-btn" data-rewarded-button="" onclick="claimRewardedCoins()"><span data-ui-icon="reward" data-icon-size="22"></span><b>+100 монет</b><small data-rewarded-status="">rewarded · 3/3</small></button>
+<button class="r16-quick-btn" onclick="toggleAudioMute()"><span id="menu-sound-icon" data-ui-icon="volume" data-icon-size="22"></span><b id="menu-sound-label">Звук включён</b></button>
+</div>
+</div>
+</div>
+</div>
+<div aria-label="Этапы матча" class="menu-flow">
+<span>Жребий</span><i>›</i><span>Драфт</span><i>›</i><span>Козыри</span><i>›</i><span>Арена</span><i>›</i><span>Битва</span>
+</div>
+</div>
+</section>
+<!-- INITIATIVE DRAFT PHASE -->
+<div class="w-full hidden flex-col items-center text-center my-auto py-8 transition-all duration-500" id="initiative-phase">
+<h2 class="title-font text-2xl md:text-4xl mb-3 text-amber-400 font-black uppercase tracking-widest drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">Жребий Первого Хода <span class="ui-inline-icon" data-ui-icon="dice" data-icon-size="24"></span></h2>
+<p class="text-slate-300 text-sm md:text-base mb-6 font-medium max-w-lg">Бросьте кости. Игрок с наибольшим числом совершит первый ход на Драфте!</p>
+<div class="flex gap-6 md:gap-10 mb-6">
+<div class="glass-panel card-3d border-2 border-blue-500/60 rounded-2xl p-5 w-32 md:w-40 flex flex-col items-center shadow-lg">
+<span class="text-blue-400 font-bold mb-2 uppercase tracking-wider text-xs md:text-sm" id="initiative-p1-label">Игрок 1</span>
+<span class="text-5xl md:text-6xl font-black text-white my-1 inline-flex items-center justify-center" id="init-p1-val"><span data-ui-icon="dice" data-icon-size="44"></span></span>
+</div>
+<div class="glass-panel card-3d border-2 border-orange-500/60 rounded-2xl p-5 w-32 md:w-40 flex flex-col items-center shadow-lg">
+<span class="text-orange-400 font-bold mb-2 uppercase tracking-wider text-xs md:text-sm" id="initiative-p2-label">Игрок 2</span>
+<span class="text-5xl md:text-6xl font-black text-white my-1 inline-flex items-center justify-center" id="init-p2-val"><span data-ui-icon="dice" data-icon-size="44"></span></span>
+</div>
+</div>
+<p class="text-lg md:text-xl font-bold mb-6 text-purple-300 min-h-[2rem] tracking-wide" id="init-result-text"></p>
+<button class="bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white px-8 py-3.5 rounded-2xl font-black text-lg shadow-lg transition transform hover:scale-105 active:scale-95 border border-amber-400/50 uppercase tracking-wider flex items-center gap-2" id="roll-init-btn" onclick="rollInitiative()">
+<span>БРОСИТЬ КОСТИ</span><span class="ui-inline-icon" data-ui-icon="dice" data-icon-size="20"></span>
+            </button>
+<button class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-3.5 rounded-2xl font-black text-lg shadow-lg transition transform hover:scale-105 active:scale-95 border border-emerald-400 uppercase tracking-wider" id="start-draft-btn" onclick="proceedToDraft()">
+                ПЕРЕЙТИ К ДРАФТУ <span class="ui-inline-icon" data-ui-icon="future" data-icon-size="20"></span>
+            </button>
+</div>
+<!-- DRAFT PHASE -->
+<div class="w-full hidden flex-col items-center justify-center transition-opacity duration-500 py-4" id="draft-phase">
+<div class="r13-phase-eyebrow">СЛЕПОЙ ДРАФТ • БЕЗ БАЛАНСИРОВКИ</div>
+<h3 class="title-font text-2xl md:text-3xl mb-4 font-black tracking-widest text-center ui-turn-label" id="draft-turn-text">Ход Игрока 1</h3>
+<div class="w-72 md:w-80 glass-panel card-3d border border-slate-700/80 rounded-3xl p-5 flex flex-col items-center text-center shadow-2xl transition-all duration-300 relative ui-draft-card ui-card-motion" id="draft-card">
+<div class="w-full h-56 bg-slate-950/80 rounded-2xl mb-4 flex items-center justify-center border border-slate-800 shadow-inner overflow-hidden relative" id="draft-img-container">
+<span class="text-7xl drop-shadow-md" id="draft-emoji"><span data-ui-icon="swords" data-icon-size="54"></span></span>
+</div>
+<h4 class="title-font text-xl font-black text-white mb-5 uppercase tracking-wider" id="draft-name">Алый Жнец</h4>
+<div class="flex gap-3 w-full ui-draft-actions">
+<button class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-extrabold text-sm transition transform active:scale-95 shadow-md border border-emerald-400/40 uppercase tracking-wider" id="draft-keep-btn" onclick="handleDraft('keep')">
+                        ЗАБРАТЬ <span class="ui-inline-icon" data-ui-icon="swords" data-icon-size="18"></span>
+                    </button>
+<button class="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl font-extrabold text-sm transition transform active:scale-95 shadow-md border border-rose-400/40 uppercase tracking-wider" id="draft-pass-btn" onclick="handleDraft('pass')">
+                        ОТДАТЬ <span class="ui-inline-icon" data-ui-icon="gift" data-icon-size="18"></span>
+                    </button>
+</div>
+</div>
+</div>
+<!-- BONUS SELECTION PHASE -->
+<div class="w-full hidden flex-col items-center justify-center transition-opacity duration-500 py-4" id="bonus-phase">
+<h3 class="text-lg md:text-xl mb-4 font-bold text-center text-amber-400" id="bonus-turn-text">Игрок 1, нажмите для определения количества Козырей</h3>
+<button class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-2xl font-black text-lg shadow-lg transition transform hover:scale-105 active:scale-95 border border-purple-400/50 mb-4 uppercase tracking-wider flex items-center gap-2" id="roll-bonus-btn" onclick="rollBonuses()">
+<span>УЗНАТЬ КОЗЫРИ</span><span class="ui-inline-icon" data-ui-icon="prime" data-icon-size="20"></span>
+            </button>
+<div class="hidden w-full flex flex-col items-center" id="bonus-selection-area">
+<p class="text-base font-semibold mb-4 text-slate-300" id="bonus-points-wrapper">
+                    Доступно Козырей: <span class="text-purple-400 font-black text-2xl mx-1.5" id="bonus-points">1</span>
+</p>
+<div class="flex flex-wrap justify-center gap-4 w-full max-w-5xl mb-6" id="bonus-team-grid"></div>
+<button class="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-3.5 rounded-2xl font-black text-lg shadow-lg transition transform hover:scale-105 active:scale-95 border border-emerald-400/50 uppercase tracking-wider" id="confirm-bonus-btn" onclick="nextBonusTurn()">
+                    ПОДТВЕРДИТЬ ВЫБОР <span class="ui-inline-icon" data-ui-icon="check" data-icon-size="18"></span>
+                </button>
+</div>
+</div>
+<!-- LOCATION PHASE (ROULETTE) -->
+<div class="w-full hidden flex-col items-center justify-center transition-opacity duration-500 py-4" id="location-phase">
+<h3 class="title-font text-2xl md:text-3xl mb-2 text-amber-400 font-black uppercase tracking-widest text-center" id="location-title">Колесо Арен <span class="ui-inline-icon" data-ui-icon="wheel" data-icon-size="22"></span></h3>
+<p class="text-slate-300 text-sm md:text-base mb-6 font-medium text-center max-w-lg" id="location-chooser-text">Вращайте рулетку, чтобы случайным образом определить Поле Битвы!</p>
+<div class="flex flex-col items-center mb-6 z-10" id="location-roll-area">
+<button class="bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white px-8 py-3.5 rounded-2xl font-black text-lg shadow-lg transition transform hover:scale-105 active:scale-95 border border-amber-400/50 uppercase tracking-wider" id="spin-roulette-btn" onclick="spinArenaRoulette()">
+                    КРУТИТЬ КОЛЕСО <span class="ui-inline-icon" data-ui-icon="wheel" data-icon-size="18"></span>
+                </button>
+</div>
+<div class="hidden w-72 h-32 glass-panel border-4 border-amber-500 rounded-3xl flex-col items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all transform scale-95 opacity-0" id="roulette-display">
+<span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Выпала арена:</span>
+<span class="title-font text-2xl md:text-3xl font-black uppercase tracking-widest text-white drop-shadow-lg text-center" id="roulette-result"><span data-ui-icon="question" data-icon-size="34"></span></span>
+</div>
+</div>
+<!-- BATTLE PHASE -->
+<div class="w-full hidden flex-col items-center relative" id="battle-phase">
+<div class="absolute inset-0 bg-slate-950/95 backdrop-blur-md z-30 flex flex-col items-center justify-center p-6 text-center rounded-3xl border border-slate-800 shadow-2xl" id="battle-init-overlay">
+<h3 class="title-font text-2xl md:text-4xl font-black text-amber-400 mb-3 uppercase tracking-widest">Жребий Первого Хода Битвы <span class="ui-inline-icon" data-ui-icon="dice" data-icon-size="24"></span></h3>
+<p class="text-slate-300 text-sm md:text-base mb-6 max-w-lg font-medium">Бросьте кости, чтобы узнать, какой Игрок сделает первый шаг и выставит первого бойца на Арену!</p>
+<div class="text-lg md:text-2xl font-bold mb-6 text-purple-300 min-h-[3rem] tracking-wide" id="battle-init-result"></div>
+<button class="bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white px-9 py-4 rounded-2xl font-black text-lg shadow-xl transition transform hover:scale-105 active:scale-95 border border-amber-400/50 uppercase tracking-wider flex items-center gap-2" id="roll-battle-init-btn" onclick="rollBattleInitiative()">
+<span>БРОСИТЬ КОСТИ</span><span class="ui-inline-icon" data-ui-icon="dice" data-icon-size="20"></span>
+                </button>
+<button class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-4 rounded-2xl font-black text-lg shadow-xl transition transform hover:scale-105 active:scale-95 border border-emerald-400 uppercase tracking-wider" id="start-fight-rounds-btn" onclick="beginBattleRounds()">
+                    НАЧАТЬ РАУНД <span class="ui-inline-icon" data-ui-icon="swords" data-icon-size="18"></span>
+                </button>
+</div>
+<div class="mb-4 text-center px-5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-xs sm:text-sm font-bold text-amber-300 tracking-wider shadow-lg" id="battle-turn-indicator"></div>
+<div class="flex flex-col lg:flex-row w-full gap-5 justify-between items-stretch" id="battle-layout">
+<!-- Team 1 Roster -->
+<div class="flex-1 glass-panel p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col min-w-[280px] transition-all duration-300" id="p1-roster-box">
+<h3 class="title-font text-lg font-black text-center mb-4 text-blue-400 border-b border-blue-900/50 pb-2.5 uppercase tracking-widest flex items-center justify-center gap-2" id="p1-roster-title">
+<span>Команда 1</span>
+</h3>
+<div class="flex flex-col gap-2.5 overflow-y-auto pr-1" id="p1-roster"></div>
+</div>
+<!-- Central Arena -->
+<div class="flex-1 flex flex-col items-center justify-center min-w-[300px] py-2" id="battle-center">
+<div class="flex items-center justify-center gap-3 sm:gap-6 w-full mb-4">
+<div class="flex flex-col items-center">
+<div class="arena-slot card-3d w-36 h-48 md:w-44 md:h-56 bg-slate-950/80 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center flex-col p-2.5 relative transition-all duration-300 shadow-inner" id="arena-p1"><span class="text-slate-500 font-semibold uppercase tracking-widest text-xs text-center">Слот<br/><span class="text-[9px] opacity-70">(Выбор)</span></span></div>
+<button class="hidden mt-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-xl font-black text-xs shadow-md border border-blue-400/50 uppercase tracking-wider transition transform active:scale-95" id="lock-p1-btn" onclick="confirmFighterLock(1)">
+                                ПОДТВЕРДИТЬ <span class="ui-inline-icon" data-ui-icon="check" data-icon-size="16"></span>
+                            </button>
+</div>
+<div class="title-font text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-red-500 to-red-800 drop-shadow-xl">VS</div>
+<div class="flex flex-col items-center">
+<div class="arena-slot card-3d w-36 h-48 md:w-44 md:h-56 bg-slate-950/80 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center flex-col p-2.5 relative transition-all duration-300 shadow-inner" id="arena-p2"><span class="text-slate-500 font-semibold uppercase tracking-widest text-xs text-center">Слот<br/><span class="text-[9px] opacity-70">(Выбор)</span></span></div>
+<button class="hidden mt-2 bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded-xl font-black text-xs shadow-md border border-orange-400/50 uppercase tracking-wider transition transform active:scale-95" id="lock-p2-btn" onclick="confirmFighterLock(2)">
+                                ПОДТВЕРДИТЬ <span class="ui-inline-icon" data-ui-icon="check" data-icon-size="16"></span>
+                            </button>
+</div>
+</div>
+<button class="mt-2 bg-gradient-to-r from-red-700 to-orange-600 text-white px-12 py-4 rounded-2xl font-black text-xl shadow-lg opacity-40 pointer-events-none transition-all transform hover:scale-105 active:scale-95 border border-red-500/50 uppercase tracking-widest flex items-center gap-2" id="fight-btn" onclick="startCombat()">
+<span>СРАЖАТЬСЯ</span><span class="ui-inline-icon" data-ui-icon="swords" data-icon-size="20"></span>
+                    </button>
+</div>
+<!-- Team 2 Roster -->
+<div class="flex-1 glass-panel p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col min-w-[280px] transition-all duration-300" id="p2-roster-box">
+<h3 class="title-font text-lg font-black text-center mb-4 text-orange-400 border-b border-orange-900/50 pb-2.5 uppercase tracking-widest flex items-center justify-center gap-2" id="p2-roster-title">
+<span>Команда 2</span>
+</h3>
+<div class="flex flex-col gap-2.5 overflow-y-auto pr-1" id="p2-roster"></div>
+</div>
+</div>
+<div class="w-full mt-6 glass-panel border border-slate-800/80 p-4 rounded-2xl max-w-5xl shadow-xl" id="combat-chronicle-panel">
+<div class="combat-chronicle-head">
+<h4 class="text-slate-400 font-bold tracking-widest text-xs uppercase flex items-center gap-2"><span data-ui-icon="rules" data-icon-size="18"></span> ХРОНИКИ СРАЖЕНИЯ</h4>
+<button class="battle-details-btn hidden" id="battle-details-btn" onclick="openBattleDetails()" type="button"><span data-ui-icon="search" data-icon-size="18"></span> Разбор боя</button>
+</div>
+<div aria-live="polite" class="battle-presentation-strip hidden" id="battle-presentation-strip"></div>
+<div class="text-xs md:text-sm space-y-3 max-h-72 overflow-y-auto font-mono text-slate-300 pr-2 leading-relaxed" id="combat-log"></div>
+</div>
+</div>
+<!-- END MATCH SCREEN -->
+<div class="hidden flex-col items-center justify-center text-center py-16" id="end-screen">
+<div aria-hidden="true" class="r13-victory-emblem"><span data-ui-icon="trophy" data-icon-size="54"></span></div>
+<div class="r13-phase-eyebrow">ИТОГ МАТЧА</div>
+<h1 class="title-font text-4xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-b from-red-500 via-orange-400 to-red-600 tracking-widest drop-shadow-[0_0_30px_rgba(239,68,68,0.5)]" id="end-title">ПОБЕДА В МАТЧЕ</h1>
+<h2 class="text-2xl md:text-4xl text-white mb-4 font-black uppercase tracking-wider" id="winner-text"></h2>
+<p class="text-base md:text-lg text-purple-300 mb-3 font-semibold" id="series-status-text"></p>
+<div class="r41-end-summary hidden" id="r41-end-summary">
+  <article><b>Драфт</b><span>формирует будущие matchup.</span></article>
+  <article><b>PRIME</b><span>нужен там, где реально меняет бой; он не лечит.</span></article>
+  <article><b>Выставление</b><span>кто ходит вторым, тот видит бойца соперника и получает возможность контрпика.</span></article>
+  <article><b>Арена</b><span>выпадает на рулетке и немного меняет условия конкретного matchup.</span></article>
+  <article><b>Состояние</b><span>переносится между последовательными дуэлями.</span></article>
+  <article><b>Рейтинг</b><span>показывает общую силу, но не гарантирует конкретный исход.</span></article>
+</div>
+<div class="r19-end-rating hidden" data-delta="flat" id="end-rating-text"></div>
+<div class="r13-reward-pill r20-end-reward" id="end-reward-text">Монеты начисляются только за победу во всей серии</div>
+<button class="r20-end-rewarded-btn" data-rewarded-button="" onclick="claimRewardedCoins()"><span data-ui-icon="reward" data-icon-size="22"></span><b>Получить +100 монет</b><small data-rewarded-status="">3/3 сегодня</small></button>
+<div class="r13-end-actions">
+<button class="r13-end-primary" id="end-action-btn" onclick="handleEndScreenAction()">СЛЕДУЮЩИЙ МАТЧ</button>
+<button class="r13-end-secondary" onclick="returnToMainMenu()">В ГЛАВНОЕ МЕНЮ</button>
+</div>
+</div>
+</main>
+<footer class="hidden fixed bottom-0 left-0 w-full bg-slate-950/90 backdrop-blur-md border-t border-slate-800/80 p-3.5 flex justify-between text-sm z-20 shadow-2xl" id="draft-rosters">
+<div class="w-1/2 pr-4 border-r border-slate-800 flex justify-between items-center">
+<span class="text-blue-400 font-bold tracking-widest uppercase text-xs sm:text-sm" id="draft-footer-p1-label">Команда 1</span>
+<span class="bg-slate-900 border border-blue-900/50 text-blue-300 px-3 py-1 rounded-lg font-mono font-bold text-xs sm:text-sm" id="p1-count">0/5</span>
+</div>
+<div class="w-1/2 pl-4 flex justify-between items-center">
+<span class="text-orange-400 font-bold tracking-widest uppercase text-xs sm:text-sm" id="draft-footer-p2-label">Команда 2</span>
+<span class="bg-slate-900 border border-orange-900/50 text-orange-300 px-3 py-1 rounded-lg font-mono font-bold text-xs sm:text-sm" id="p2-count">0/5</span>
+</div>
+</footer>
+<div aria-labelledby="game-mode-title" aria-modal="true" class="modal-layer hidden" id="game-mode-modal" role="dialog">
+<div class="modal-card r16-mode-modal-card">
+<div class="modal-head">
+<div><div class="modal-eyebrow">ВЫБЕРИТЕ РЕЖИМ</div><h2 id="game-mode-title">Как будем играть?</h2></div>
+<button aria-label="Закрыть" class="modal-close" onclick="closeGameModeSelect()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<p class="r16-mode-intro">Офлайн-версия поддерживает игру вдвоём и четыре полноценных уровня компьютерного соперника. Сетевой PvP остаётся большим будущим этапом.</p>
+<div class="r16-mode-grid">
+<article class="r16-mode-card is-ready">
+<div class="r16-mode-icon"><span data-ui-icon="users" data-icon-size="42"></span></div>
+<div class="r16-mode-card-body"><span class="r16-mode-badge ready">ГОТОВО</span><h3>Вдвоём на одном устройстве</h3><p>Ход Игрока 1 → ход Игрока 2. Оба участника играют на одном экране по очереди — без лишних промежуточных пауз.</p></div>
+<button class="r16-mode-action" onclick="beginLocalTwoPlayer()">ИГРАТЬ ВДВОЁМ</button>
+</article>
+<article class="r16-mode-card is-ready">
+<div class="r16-mode-icon"><span data-ui-icon="cpu" data-icon-size="42"></span></div>
+<div class="r16-mode-card-body"><span class="r16-mode-badge ready">ГОТОВО</span><h3>Против компьютера</h3><p>Четыре честных уровня ИИ: Лёгкий, Средний, Сложный и Мастер — без подкрученного RNG, скрытых усилений и просмотра будущих карт.</p></div>
+<button class="r16-mode-action" onclick="openCpuPreview()">ВЫБРАТЬ СЛОЖНОСТЬ</button>
+</article>
+<article class="r16-mode-card">
+<div class="r16-mode-icon"><span data-ui-icon="online" data-icon-size="42"></span></div>
+<div class="r16-mode-card-body"><span class="r16-mode-badge future">БУДУЩЕЕ</span><h3>Онлайн PvP</h3><p>Матчи с игроками и друзьями VK, рейтинговые сезоны и турниры. Сейчас этот режим намеренно не имитируется.</p></div>
+<button class="r16-mode-action secondary" onclick="closeGameModeSelect(); openFutureUpdates()">ПЛАН ОБНОВЛЕНИЯ</button>
+</article>
+</div>
+<div class="modal-actions"><button class="modal-secondary" onclick="closeGameModeSelect()">Назад</button></div>
+</div>
+</div>
+<div aria-labelledby="cpu-preview-title" aria-modal="true" class="modal-layer hidden" id="cpu-preview-modal" role="dialog">
+<div class="modal-card r16-cpu-card">
+<div class="modal-head">
+<div><div class="modal-eyebrow">ПРОТИВ КОМПЬЮТЕРА</div><h2 id="cpu-preview-title">Четыре уровня ИИ</h2></div>
+<button aria-label="Закрыть" class="modal-close" onclick="closeCpuPreview()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<p class="r16-mode-intro">Все четыре соперника используют одну и ту же честную боевую систему. Разница только в качестве решений: ИИ не получает другие карты, не меняет броски и не видит будущую очередь драфта.</p>
+<div class="r19-current-rating">Ваш рейтинг: <b id="cpu-current-rating">800</b> Elo <small>· меняется только после серии до 5</small></div>
+<div class="r16-cpu-grid">
+<article><span>Ⅰ</span><h3>Лёгкий</h3><p>Простые решения и много естественных ошибок. Подходит для знакомства с механиками.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-easy">800</i></b><small id="cpu-elo-delta-easy">Победа +16 · поражение −16</small><em id="cpu-wins-easy">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick" onclick="beginCpuGame('easy')">ИГРАТЬ</button></article>
+<article><span>Ⅱ</span><h3>Средний</h3><p>Понимает силу карт, ценность Прайма и базовые контрпики, но остаётся обыгрываемым.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-medium">1100</i></b><small id="cpu-elo-delta-medium">Победа +27 · поражение −5</small><em id="cpu-wins-medium">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick" onclick="beginCpuGame('medium')">ИГРАТЬ</button></article>
+<article><span>Ⅲ</span><h3>Сложный</h3><p>Учитывает Прайм, состояние бойцов, текущую арену и последовательность команды.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-hard">1400</i></b><small id="cpu-elo-delta-hard">Победа +31 · поражение −1</small><em id="cpu-wins-hard">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick" onclick="beginCpuGame('hard')">ИГРАТЬ</button></article>
+<article><span>Ⅳ</span><h3>Мастер</h3><p>Использует полную боевую модель и оценивает все открытые контрпики — без скрытой информации.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-master">1700</i></b><small id="cpu-elo-delta-master">Победа +32 · поражение ±0</small><em id="cpu-wins-master">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick master" onclick="beginCpuGame('master')">ИГРАТЬ</button></article>
+</div>
+<div class="r18-fair-ai-note"><b>Честный ИИ:</b> одинаковые правила, одинаковый драфт, одинаковые броски и никакого скрытого бонуса к силе.</div>
+<div class="modal-actions"><button class="modal-secondary" onclick="closeCpuPreview(); openGameModeSelect()">Назад</button></div>
+</div>
+</div>
+<div aria-labelledby="future-updates-title" aria-modal="true" class="modal-layer hidden" id="future-updates-modal" role="dialog">
+<div class="modal-card r16-future-card">
+<div class="modal-head">
+<div><div class="modal-eyebrow">БУДУЩИЕ ОБНОВЛЕНИЯ</div><h2 id="future-updates-title">Арена станет сетевой</h2></div>
+<button aria-label="Закрыть" class="modal-close" onclick="closeFutureUpdates()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<div class="r16-future-hero"><span data-ui-icon="online" data-icon-size="42"></span><div><b>ONLINE PvP</b><p>Сначала доводим офлайн-версию до максимума, затем добавляем настоящий серверный мультиплеер.</p></div></div>
+<div class="r16-future-list">
+<article><b>01</b><div><h3>Матчи против игроков</h3><p>Синхронный пошаговый драфт и серия боёв на разных устройствах.</p></div></article>
+<article><b>02</b><div><h3>Игра с друзьями VK</h3><p>Приватные комнаты и приглашения через социальные возможности VK.</p></div></article>
+<article><b>03</b><div><h3>Рейтинговые сезоны</h3><p>Отдельный онлайн-рейтинг, который нельзя фармить на ботах.</p></div></article>
+<article><b>04</b><div><h3>Турниры и таблицы</h3><p>Сезонные соревнования, таблицы лидеров и история результатов.</p></div></article>
+<article><b>05</b><div><h3>Эксклюзивная косметика</h3><p>Награды за онлайн-сезоны без усиления силы персонажей.</p></div></article>
+</div>
+<div class="modal-actions"><button class="modal-primary" onclick="closeFutureUpdates()">Вернуться</button></div>
+</div>
+</div>
+<div aria-labelledby="feature-preview-title" aria-modal="true" class="modal-layer hidden" id="feature-preview-modal" role="dialog">
+<div class="modal-card compact-modal r16-feature-card">
+<div class="modal-head">
+<div><div class="modal-eyebrow">ПРОФИЛЬ ИГРОКА</div><h2 id="feature-preview-title">Раздел</h2></div>
+<button aria-label="Закрыть" class="modal-close" onclick="closeFeaturePreview()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<div class="r16-feature-body" id="feature-preview-body"></div>
+<div class="modal-actions"><button class="modal-primary" onclick="closeFeaturePreview()">Закрыть</button></div>
+</div>
+</div>
+<div aria-labelledby="r41-tutorial-title" aria-modal="true" class="modal-layer hidden r41-tutorial-layer" id="r41-tutorial-modal" role="dialog">
+<div class="modal-card compact-modal r41-tutorial-card">
+  <div class="modal-head">
+    <div><div class="modal-eyebrow">R41.2 • VK MOBILE ONBOARDING FIX</div><h2 id="r41-tutorial-title">Перед первым боем — матч с Лёгким ботом</h2></div>
+    <button aria-label="Закрыть обучение" class="modal-close" onclick="closeR41Tutorial()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+  </div>
+  <p class="r41-tutorial-copy" id="r41-tutorial-copy">Вы играете обычный матч против Лёгкого бота, а подсказки только объясняют решения.</p>
+  <div class="r41-tutorial-flow" aria-label="Этапы учебного матча"><span>Жребий</span><i>›</i><span>Драфт 5×5</span><i>›</i><span>PRIME обеих сторон</span><i>›</i><span>Рулетка</span><i>›</i><span>Обычный бой</span></div>
+  <div class="r41-tutorial-note"><b>Выбор остаётся за вами:</b> наставник рекомендует, но не запрещает другие решения. Бот — реальный Easy AI, его драфт, PRIME и выставление бойцов видны на экране. Прогресс профиля не меняется.</div>
+  <div class="modal-actions"><button class="modal-primary" id="r41-tutorial-start" onclick="startR41TutorialMatch()">НАЧАТЬ МАТЧ С ПОДСКАЗКАМИ</button><button class="modal-secondary" onclick="closeR41Tutorial()">НАЗАД</button></div>
+</div>
+</div>
+<div aria-labelledby="rules-title" aria-modal="true" class="modal-layer hidden" id="rules-modal" role="dialog">
+<div class="modal-card rules-card r33-rules-card">
+<div class="modal-head r33-rules-head">
+<div><div class="modal-eyebrow">СПРАВОЧНИК АРЕНЫ</div><h2 id="rules-title">Подробные правила боя</h2><p id="r33-rules-subtitle">Необязательная справка: рейтинг, Прайм, состояния, контры и спорные примеры.</p></div>
+<button aria-label="Закрыть правила" class="modal-close" id="r33-rules-close" onclick="closeRules(false)"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<div class="r33-tutorial-progress" aria-label="Прогресс обучения">
+<div class="r33-progress-copy"><b id="r33-tutorial-step">1</b><span>/ 9</span><small id="r33-tutorial-label">Матч и последовательность</small></div>
+<div class="r33-progress-track"><i id="r33-tutorial-progress-bar"></i></div>
+</div>
+<div class="r33-tutorial-stage" id="r33-tutorial-stage" aria-live="polite">
+<section class="r33-tutorial-page" data-r33-page="0">
+<div class="r33-page-kicker">ОСНОВА МАТЧА</div><h3>Это не пять независимых сравнений карт</h3>
+<p class="r33-page-lead">Матч — цепочка решений и последовательных дуэлей. Победитель каждого боя остаётся в строю и переносит своё состояние дальше.</p>
+<div class="r33-flow-grid">
+<article><b>1</b><strong>Жребий</strong><span>Кто первым принимает решение в драфте.</span></article>
+<article><b>2</b><strong>Драфт 5 × 5</strong><span>Забрать бойца себе или отдать сопернику. Искусственной балансировки команд нет.</span></article>
+<article><b>3</b><strong>Козыри / Прайм</strong><span>От 1 до 5 усилений на сторону. Вы сами выбираете, кому открыть сильнейшую подтверждённую форму.</span></article>
+<article><b>4</b><strong>Арена и порядок</strong><span>Определяется место боя и кто первым выставляет бойца.</span></article>
+<article><b>5</b><strong>Серия дуэлей</strong><span>Победитель остаётся, получает последствия боя и встречает следующего соперника.</span></article>
+</div>
+<div class="r33-callout"><b>Главное:</b> один сильный боец может победить нескольких противников, но каждый тяжёлый бой делает следующий опаснее.</div>
+</section>
+
+<section class="r33-tutorial-page" data-r33-page="1" hidden>
+<div class="r33-page-kicker">РЕЙТИНГ СИЛЫ</div><h3>Число — стартовая оценка, а не кнопка «победил»</h3>
+<p class="r33-page-lead">BASE и PRIME показывают общую боевую состоятельность персонажа в соответствующей форме при нормальных условиях. Движок использует рейтинг как основу, а затем учитывает конкретный бой.</p>
+<div class="r33-gap-grid">
+<article class="close"><b>0–5</b><strong>Близкий бой</strong><span>Матчап, состояние и арена реально способны решить исход.</span></article>
+<article class="advantage"><b>6–11</b><strong>Заметное преимущество</strong><span>Более слабому нужен настоящий hard-counter или ability-bypass, чтобы перевернуть свежий бой.</span></article>
+<article class="dominant"><b>12+</b><strong>Большой разрыв</strong><span>Обычный бонус арены или удобный стиль уже не отменяет разницу. Исключение — только специально заданный канонический обход способности.</span></article>
+</div>
+<div class="r33-rule-line"><span>✓</span><p><b>Важно:</b> эти границы защищают порядок сил прежде всего для свежих бойцов. Накопленная усталость может изменить реальную боеспособность.</p></div>
+<div class="r33-rule-line"><span>✓</span><p><b>Prime не означает автоматическую победу</b> над чужим Base — сравнивается конкретная пара, форма и состояние.</p></div>
+</section>
+
+<section class="r33-tutorial-page" data-r33-page="2" hidden>
+<div class="r33-page-kicker">BASE И PRIME</div><h3>Prime усиливает форму, но не лечит персонажа</h3>
+<div class="r33-two-col">
+<article class="r33-info-card"><span data-ui-icon="swords" data-icon-size="28"></span><div><strong>BASE</strong><p>Базовая подтверждённая боевая версия персонажа, используемая без Козыря.</p></div></article>
+<article class="r33-info-card prime"><span data-ui-icon="reward" data-icon-size="28"></span><div><strong>PRIME</strong><p>Сильнейшая подтверждённая и разрешённая нашей моделью форма или арсенал.</p></div></article>
+</div>
+<div class="r33-prime-rules">
+<p><b>Prime повышает возможности:</b> силу, скорость, техники, hax и другие характеристики в рамках профиля конкретного персонажа.</p>
+<p><b>Prime не сбрасывает состояние.</b> Истощённый персонаж, получив Prime, остаётся истощённым — он просто использует более сильный набор в текущем физическом состоянии.</p>
+<p><b>Неизвестная форма не получает выдуманных очков.</b> Если Bankai или иная форма не показаны/не подтверждены в нашей модели, бонус за неё не создаётся.</p>
+</div>
+<div class="r33-callout warning"><b>Поэтому:</b> «Prime 95» и «свежий Prime 95» — не одно и то же, если персонаж уже прошёл несколько тяжёлых дуэлей.</div>
+</section>
+
+<section class="r33-tutorial-page" data-r33-page="3" hidden>
+<div class="r33-page-kicker">СОСТОЯНИЯ БОЙЦА</div><h3>Состояние показывает, сколько реальной боеспособности осталось</h3>
+<div class="r33-state-grid">
+<article class="s0"><b>СВЕЖИЙ</b><span>Полная боевая готовность. Скорость, защита, запас сил и способности работают без штрафов.</span></article>
+<article class="s1"><b>РАНЕН</b><span>Повреждения уже заметны, но персонаж всё ещё близок к нормальному боевому уровню.</span></article>
+<article class="s2"><b>ИСТОЩЁН</b><span>Серьёзно проседают выносливость, скорость, защита, мобильность и надёжность тяжёлых техник.</span></article>
+<article class="s3"><b>НА ГРАНИ</b><span>Боец едва продолжает сражение. Даже намного более слабый свежий соперник может воспользоваться этим и добить его.</span></article>
+<article class="s4"><b>МЁРТВ</b><span>Персонаж выбывает из текущего матча и больше не может быть выставлен.</span></article>
+</div>
+<div class="r33-callout"><b>Нет автоматического восстановления:</b> между последовательными дуэлями победитель не возвращается в состояние «Свежий».</div>
+</section>
+
+<section class="r33-tutorial-page" data-r33-page="4" hidden>
+<div class="r33-page-kicker">ЧТО МЕНЯЕТ УСТАЛОСТЬ</div><h3>Состояние не отнимает фиксированные «−10 рейтинга»</h3>
+<p class="r33-page-lead">Движок отдельно меняет 13 параметров бойца. Поэтому два персонажа с одинаковым рейтингом могут по-разному переносить истощение.</p>
+<div class="r33-stat-list"><span>духовная сила</span><span>атака</span><span>защита</span><span>скорость</span><span>реакция</span><span>прочность</span><span>выносливость</span><span>дальность</span><span>боевой интеллект</span><span>техника</span><span>мобильность</span><span>сила способностей</span><span>сопротивление способностям</span></div>
+<div class="r33-fatigue-table-wrap"><table class="r33-fatigue-table"><thead><tr><th>Состояние</th><th>Выносливость</th><th>Скорость</th><th>Защита</th><th>Сила спец.</th><th>Надёжность hax</th></tr></thead><tbody>
+<tr class="s0"><th>Свежий</th><td>100%</td><td>100%</td><td>100%</td><td>100%</td><td>100%</td></tr>
+<tr class="s1"><th>Ранен</th><td>82%</td><td>93%</td><td>91%</td><td>96%</td><td>95%</td></tr>
+<tr class="s2"><th>Истощён</th><td>52%</td><td>76%</td><td>76%</td><td>86%</td><td>82%</td></tr>
+<tr class="s3"><th>На грани</th><td>26%</td><td>52%</td><td>51%</td><td>72%</td><td>64%</td></tr>
+</tbody></table></div>
+<p class="r33-fineprint">Таблица показывает ключевые параметры. В полном расчёте применяются все 13 коэффициентов, а также штрафы к запуску и дорогим техникам.</p>
+</section>
+
+<section class="r33-tutorial-page" data-r33-page="5" hidden>
+<div class="r33-page-kicker">ПОРЯДОК РАСЧЁТА</div><h3>Что делает Combat Engine, когда два бойца уже вышли на арену</h3>
+<div class="r33-engine-flow">
+<article><b>01</b><div><strong>Форма и рейтинг</strong><span>Берётся выбранный BASE/PRIME и утверждённая общая сила этой формы.</span></div></article>
+<article><b>02</b><div><strong>Текущее состояние</strong><span>К 13 параметрам применяются коэффициенты «Свежий / Ранен / Истощён / На грани».</span></div></article>
+<article><b>03</b><div><strong>Профиль противостояния</strong><span>Сравниваются скорость, реакция, техника, дистанция, защита, мобильность и другие свойства.</span></div></article>
+<article><b>04</b><div><strong>Способности и контры</strong><span>Проверяются hax, условия активации, hard-counter, ability-bypass, регенерация и специальные правила пары.</span></div></article>
+<article><b>05</b><div><strong>Арена</strong><span>Учитывается местность и небольшой бонус родной территории. Арена помогает, но не создаёт огромную силу из ничего.</span></div></article>
+<article><b>06</b><div><strong>Исход и цена победы</strong><span>Определяется победитель, тяжесть дуэли и состояние, с которым победитель пойдёт дальше.</span></div></article>
+</div>
+<div class="r33-callout success"><b>Скрытого «процента удачи» в самой дуэли нет.</b> Случайность используется на жребии, драфте, количестве Козырей и выборе арены; когда конкретная пара уже сражается в конкретных условиях, исход считается правилами движка.</div>
+</section>
+
+<section class="r33-tutorial-page" data-r33-page="6" hidden>
+<div class="r33-page-kicker">HAX, КОНТРЫ И ОСОБЫЕ УСЛОВИЯ</div><h3>Почему более высокий рейтинг иногда всё же проигрывает</h3>
+<div class="r33-special-grid">
+<article><strong>Hard-counter / ability-bypass</strong><p>Некоторые способности специально обходят ключевую защиту или механику конкретного противника. Только такие подтверждённые исключения способны ломать большой свежий разрыв рейтинга.</p></article>
+<article><strong>Speed blitz до реактивного hax</strong><p>Если способность требует осознанной активации, а противник объективно успевает атаковать раньше, реактивный hax может не запуститься вовремя.</p></article>
+<article><strong>Регенерация ≠ бессмертие</strong><p>Движок проверяет, способен ли соперник уничтожить критическую часть, обойти регенерацию или выполнить другое условие победы.</p></article>
+<article><strong>Без бесконечной подготовки</strong><p>Тактики и учёные используют боевой набор и информацию, которую реально успели получить. Бесконечный prep-time не выдаётся автоматически.</p></article>
+</div>
+<div class="r33-rule-line"><span>!</span><p><b>Reiatsu/подавление способностей</b> не включается из-за условных «+5 силы»: для полного подавления нужна огромная подтверждаемая разница или прямой специальный прецедент.</p></div>
+</section>
+
+<section class="r33-tutorial-page" data-r33-page="7" hidden>
+<div class="r33-page-kicker">НАКОПЛЕННЫЙ УРОН</div><h3>Цена победы определяет следующий бой</h3>
+<p class="r33-page-lead">После победы движок смотрит не на разницу рейтингов, а на внутренний итоговый отрыв конкретной дуэли. Чем ближе бой, тем больше повреждений получает победитель.</p>
+<div class="r33-damage-grid">
+<article><b>24+</b><strong>0 ступеней</strong><span>Состояние победителя не ухудшается.</span></article>
+<article><b>10–23.999</b><strong>+1 ступень</strong><span>Состояние ухудшается на одну ступень.</span></article>
+<article><b>4–9.999</b><strong>+2 ступени</strong><span>Состояние ухудшается на две ступени.</span></article>
+<article><b>&lt; 4</b><strong>+3 ступени</strong><span>Победитель может сразу оказаться «На грани».</span></article>
+</div>
+<p class="r33-fineprint">Это внутренний отрыв Combat Engine, а не разница рейтингов BASE/PRIME. Самоповреждающие или очень дорогие техники могут дополнительно ухудшить состояние победителя.</p>
+<div class="r33-state-arrow"><span class="s0">Свежий</span><i>→</i><span class="s1">Ранен</span><i>→</i><span class="s2">Истощён</span><i>→</i><span class="s3">На грани</span><i>→</i><span class="s4">Мёртв</span></div>
+<div class="r33-final-principle"><b>Победа в конкретной дуэли не означает, что победитель сильнее противника в общем рейтинге.</b><p>Он мог иметь удобный контр, лучшую арену или просто встретить соперника уже истощённым. Именно поэтому разбор боя всегда показывает состояние и ключевые факторы.</p></div>
+</section>
+
+<section class="r33-tutorial-page r34-examples-page" data-r33-page="8" hidden>
+<div class="r33-page-kicker">8 СПОРНЫХ ПРИМЕРОВ</div><h3>Как читать неожиданный исход, не путая его с общим рейтингом</h3>
+<p class="r33-page-lead">Это примеры правил движка, а не новая таблица силы. В каждом случае важно смотреть на форму, состояние и конкретное взаимодействие способностей.</p>
+<div class="r34-example-grid">
+<article class="fatigue"><header><span>СОСТОЯНИЕ</span><b>89 ↔ 72</b></header><strong>Владыка Морозного Дракона ↔ Создатель Кукол</strong><p>Свежий Прайм Владыка Морозного Дракона заметно сильнее. Но если он уже <b>Истощён</b> или тем более <b>На грани</b>, накопленные повреждения режут скорость, защиту, выносливость и стабильность сильнейших техник. Свежий Создатель Кукол уже может добить его.</p><small>Такая победа не делает Создателя Кукол сильнее в общем рейтинге.</small></article>
+<article class="fatigue"><header><span>ДОБИВАНИЕ</span><b>87 ↔ 55</b></header><strong>Громовая Повелительница ↔ Магическая Ловушечница</strong><p>При свежем состоянии разрыв огромный. Но состояние <b>«На грани»</b> означает, что даже элитный боец едва продолжает бой. Свежий более слабый соперник способен воспользоваться этим и закончить дуэль.</p><small>Важен не только рейтинг, но и то, в каком состоянии персонаж дошёл до раунда.</small></article>
+<article class="counter"><header><span>ПРЯМОЙ КОНТР</span><b>54 ↔ 94</b></header><strong>Хранительница Зеркального Клинка ↔ Священный Стрелок</strong><p>Обычная разница в 40 пунктов была бы непреодолимой. Здесь работает специально заданный <b>зеркальный контр божественной форме</b>, который обходит ключевую механику конкретного противника.</p><small>Это исключение конкретной пары, а не скрытая сила 94 у Хранительницы.</small></article>
+<article class="counter"><header><span>ОБХОД СПОСОБНОСТИ</span><b>75 ↔ 84</b></header><strong>Мастер Пространственных Барьеров ↔ Владыка Увядания</strong><p>Владыка Увядания сильнее по общей шкале, но пространственный перенос способен обратить поле увядания против его владельца. Поэтому движок разрешает реальный обход способности.</p><small>Без этого специального взаимодействия более высокий рейтинг сохраняет преимущество.</small></article>
+<article class="counter"><header><span>ИНВЕРСИЯ СОБЫТИЯ</span><b>91 ↔ 95</b></header><strong>Стрелок Звездного Ордена ↔ Ткачиха Миров</strong><p>Ткачиха Миров выше по общей боевой состоятельности. Но Прайм Стрелка способен <b>перевернуть уже произошедшее событие</b>, поэтому в этой паре существует подтверждённый путь к победе более слабого по рейтингу.</p><small>Движок не превращает 91 в 96 — он применяет особое правило пары.</small></article>
+<article class="counter"><header><span>КОНТР НА КОНТР</span><b>91 ↔ 89</b></header><strong>Стрелок Звездного Ордена ↔ Страж Баланса</strong><p>Здесь уже наоборот: несмотря на более высокий рейтинг Стрелка, <b>Зеркальный Баланс</b> специально контрит возврат события и может перенаправить последствия обратно. Поэтому 91 не получает автоматическую победу над 89.</p><small>Конкретное противостояние может быть важнее небольшой разницы рейтинга.</small></article>
+<article class="survival"><header><span>УСЛОВИЕ УБИЙСТВА</span><b>95 ↔ 94</b></header><strong>Демон Ярости ↔ Рыцарь Чудес</strong><p>Разрубить Рыцаря Чудес недостаточно, чтобы автоматически засчитать смерть: его механика восстановления способна вернуть его в бой и усилить. Движок учитывает <b>условие окончательного убийства</b>, а не только нанесённый урон.</p><small>Регенерация не равна бессмертию, но и одно смертельное на вид попадание не всегда завершает бой.</small></article>
+<article class="equalizer"><header><span>ВЗАИМНОЕ ИСТОЩЕНИЕ</span><b>75 ↔ 81+</b></header><strong>Жнец Цепей ↔ значительно более сильный соперник</strong><p>Прайм Жнеца Цепей может затянуть более сильного противника в крайне тяжёлое взаимное истощение, если успевает активировать технику. Это создаёт почти ничейный сценарий, но <b>не делает его равным топ-бойцам по общей силе</b>.</p><small>Если противник объективно успевает провести мгновенную атаку до активации техники, взаимное истощение может не запуститься.</small></article>
+</div>
+<div class="r34-example-rule"><b>Как спорить с результатом правильно:</b><span>сначала сравните BASE/PRIME → затем входное состояние → затем специальное правило пары → затем арену и цену предыдущих дуэлей. Только после этого сравнивайте итог с общим рейтингом.</span></div>
+</section>
+</div>
+<div class="modal-actions r33-rules-actions">
+<button class="modal-secondary hidden" id="r33-tutorial-prev" onclick="r33TutorialPrev()" type="button">← Назад</button>
+<button class="modal-primary" id="r33-tutorial-next" onclick="r33TutorialNext()" type="button">Далее →</button>
+<button class="modal-primary hidden" id="rules-start-btn" onclick="closeRules(true)" type="button">Понятно — начать</button>
+<button class="modal-primary hidden" id="r33-rules-done" onclick="closeRules(false)" type="button">Готово</button>
+</div>
+</div>
+</div>
+<div aria-labelledby="economy-title" aria-modal="true" class="modal-layer hidden" id="economy-modal" role="dialog">
+<div class="modal-card r20-economy-card">
+<div class="modal-head">
+<div><div class="modal-eyebrow">ЭКОНОМИКА АРЕНЫ</div><h2 id="economy-title">Монеты и награды</h2></div>
+<button aria-label="Закрыть" class="modal-close" onclick="closeEconomyInfo()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<div class="r20-economy-balance"><span data-ui-icon="coin" data-icon-size="30"></span><div><small>БАЛАНС</small><b data-coin-balance="">0</b><em>монет</em></div></div>
+<div class="r20-reward-table-wrap">
+<div class="r20-reward-table-head"><b>Счёт</b><span>Лёгкий</span><span>Средний</span><span>Сложный</span><span>Мастер</span></div>
+<div class="r20-reward-table" id="economy-series-table"></div>
+</div>
+<div class="r20-rewarded-panel">
+<div><span data-ui-icon="reward" data-icon-size="30"></span><div><b>Rewarded-реклама</b><p>Успешный просмотр: <strong>+100 монет</strong>. Максимум 3 награды в день.</p><small data-rewarded-status="">3/3 сегодня</small></div></div>
+<button class="modal-primary r20-modal-rewarded" data-rewarded-button="" onclick="claimRewardedCoins()"><span class="ui-inline-icon" data-ui-icon="reward" data-icon-size="18"></span>Смотреть · +100 монет</button>
+</div>
+<p class="r20-economy-note">Монеты выдаются только за победу в серии до 5 против компьютера. Поражение, отдельный матч и режим «Вдвоём» монет не дают. Rewarded-награда начисляется только после подтверждённого успешного просмотра VK.</p>
+<div class="modal-actions"><button class="modal-primary" onclick="closeEconomyInfo()">Готово</button></div>
+</div>
+</div>
+<div aria-labelledby="shop-title" aria-modal="true" class="modal-layer hidden" id="shop-modal" role="dialog">
+<div class="modal-card shop-card r21-shop-card">
+<div class="modal-head">
+<div><div class="modal-eyebrow">КОСМЕТИКА И КОЛЛЕКЦИЯ</div><h2 id="shop-title">Магазин и коллекция</h2></div>
+<button aria-label="Закрыть" class="modal-close" onclick="closeShop()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<div class="shop-topline r21-shop-topline">
+<p>Все предметы меняют <b>только внешний вид</b>. Сила, шанс карт, Prime, RNG и исходы боёв не затрагиваются.</p>
+<div class="r21-shop-metrics">
+<button class="r21-coin-balance" onclick="closeShop(); openEconomyInfo()" title="Экономика" type="button"><span data-ui-icon="coin" data-icon-size="30"></span><b id="shop-coins">0</b><small>монет</small></button>
+<div class="r21-collection-balance"><span data-ui-icon="collection" data-icon-size="30"></span><b id="shop-collection-count">9/48</b><small>коллекция</small></div>
+</div>
+</div>
+<div class="r21-shop-toolbar">
+<div class="r21-view-tabs" id="shop-view-tabs"></div>
+<div class="r21-spent">Потрачено: <b id="shop-spent">0 монет</b></div>
+</div>
+<div aria-label="Категории магазина" class="r21-category-tabs" id="shop-category-tabs"></div>
+<div class="shop-grid r21-shop-grid" id="shop-items"></div>
+<div class="r21-shop-empty hidden" id="shop-empty">В этой категории пока нет купленных предметов.</div>
+<div class="shop-note r21-shop-note">53 предмета · 9 категорий · 5 эксклюзивных наград за достижения. Одна активная косметика каждого типа; всё купленное сохраняется в вашей коллекции и синхронизируется между устройствами.</div>
+<div class="modal-actions"><button class="modal-primary" onclick="closeShop()">Готово</button></div>
+</div>
+</div>
+<div aria-labelledby="audio-settings-title" aria-modal="true" class="modal-layer hidden" id="audio-settings-modal" role="dialog">
+<div class="modal-card compact-modal r13-settings-card">
+<div class="modal-head">
+<div><div class="modal-eyebrow">ЗВУК И КОМФОРТ</div><h2 id="audio-settings-title">Настройки</h2></div>
+<button aria-label="Закрыть" class="modal-close" onclick="closeAudioSettings()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<div class="r13-settings-list">
+<div class="r13-setting-row r13-master-row">
+<div><b>Общий звук</b><small>Мгновенно выключает музыку и эффекты.</small></div>
+<button class="r13-toggle-btn" id="audio-master-btn" onclick="toggleAudioMute()">Включён</button>
+</div>
+<label class="r13-setting-row">
+<div><b>Музыка</b><small>Громкость фоновой музыки арены.</small></div>
+<div class="r13-slider-wrap"><input id="music-volume" max="100" min="0" oninput="setMusicVolume(this.value)" step="1" type="range" value="28"/><output id="music-volume-value">28%</output></div>
+</label>
+<label class="r13-setting-row">
+<div><b>Эффекты</b><small>Кости, удары, духовный импульс и победа.</small></div>
+<div class="r13-slider-wrap"><input id="sfx-volume" max="100" min="0" oninput="setSfxVolume(this.value)" step="1" type="range" value="75"/><output id="sfx-volume-value">75%</output></div>
+</label>
+<div class="r13-setting-row">
+<div><b>Уменьшить анимации</b><small>Отключает тряску, 3D-наклоны и часть свечения.</small></div>
+<button class="r13-toggle-btn" id="reduced-motion-btn" onclick="toggleReducedMotion()">Выкл</button>
+</div>
+</div>
+<div class="r13-audio-note">При сворачивании VK звук всё равно автоматически ставится на паузу.</div>
+<div class="modal-actions"><button class="modal-primary" onclick="closeAudioSettings()">Готово</button></div>
+</div>
+</div>
+<div aria-labelledby="pause-title" aria-modal="true" class="modal-layer hidden" id="pause-modal" role="dialog">
+<div class="modal-card compact-modal pause-card">
+<div class="modal-head"><div><div class="modal-eyebrow">ПАУЗА</div><h2 id="pause-title">Меню игры</h2></div><button aria-label="Закрыть" class="modal-close" onclick="closePauseMenu()"><span data-ui-icon="close" data-icon-size="18"></span></button></div>
+<div class="pause-actions r13-pause-actions">
+<button class="menu-primary-btn r13-pause-continue" onclick="closePauseMenu()"><span>ПРОДОЛЖИТЬ</span><span>▶</span></button>
+<button class="menu-secondary-btn" onclick="closePauseMenu(); openRules(false)"><span data-ui-icon="rules" data-icon-size="22"></span><span>Правила</span></button>
+<button class="menu-secondary-btn" onclick="closePauseMenu(); openR41Tutorial(false)"><span data-ui-icon="target" data-icon-size="22"></span><span>Обучение</span></button>
+<button class="menu-secondary-btn" onclick="closePauseMenu(); openShop()"><span data-ui-icon="shop" data-icon-size="22"></span><span>Магазин</span></button>
+<button class="menu-secondary-btn" onclick="closePauseMenu(); openAudioSettings()"><span data-ui-icon="settings" data-icon-size="22"></span><span>Настройки</span></button>
+<button class="menu-secondary-btn danger-soft" onclick="returnToMainMenu()"><span data-ui-icon="back" data-icon-size="22"></span><span>В главное меню</span></button>
+</div>
+</div>
+</div>
+<div aria-labelledby="battle-details-title" aria-modal="true" class="modal-layer hidden" id="battle-details-modal" role="dialog">
+<div class="modal-card battle-details-modal-card ui-battle-analysis">
+<div class="modal-head">
+<div><div class="modal-eyebrow">РАЗБОР ДУЭЛИ</div><h2 id="battle-details-title">Последний бой</h2></div>
+<button aria-label="Закрыть" class="modal-close" onclick="closeBattleDetails()"><span data-ui-icon="close" data-icon-size="18"></span></button>
+</div>
+<div class="battle-details-body" id="battle-details-body"></div>
+<div class="modal-actions"><button class="modal-primary" onclick="closeBattleDetails()">Вернуться к бою</button></div>
+</div>
+</div>
+<div aria-hidden="true" aria-live="polite" class="cpu-thinking-overlay" id="cpu-thinking-overlay" role="status"><span aria-hidden="true" class="cpu-thinking-dot"></span><span id="cpu-thinking-label">ИИ анализирует ход…</span></div><div aria-live="polite" class="ui-toast hidden" id="ui-toast" role="status"></div>
+<script src="data/characters.js"></script>
+<script src="data/canon_bible.js"></script>
+<script src="data/combat_profiles.js"></script>
+<script src="data/fatigue_rules.js"></script>
+<script src="data/hax_rules.js"></script>
+<script src="data/arena_rules.js"></script>
+<script src="data/canon_verification_rules.js"></script>
+<script src="data/final_combat_policy.js"></script>
+<script src="data/battles.js"></script>
+<script src="data/draft_rules.js"></script>
+<script src="js/draft_engine.js"></script>
+<script src="js/cpu_ai.js"></script>
+<script src="js/rating_engine.js"></script>
+<script src="js/economy_engine.js"></script>
+<script src="js/shop_engine.js"></script>
+<script src="js/progress_engine.js"></script>
+<script src="js/cloud_sync.js"></script>
+
+
+
+
+
+<script src="js/icon_system.js"></script><script src="js/ui_shell.js"></script><script src="js/layout_engine.js"></script><script src="js/performance_engine.js"></script><script src="js/game.js"></script><script src="r25-canon-model.js"></script><script src="js/battle_explainer.js"></script><script src="js/presentation_engine.js"></script></body>
+</html>
