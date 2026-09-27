@@ -66,14 +66,14 @@ function button(action, label, disabled = false, extra = '') {
 function renderLobby() {
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem">⚔️</div><h2>Найти соперника</h2>
-    <p>Система подберёт игрока с близким рейтингом. Победа в серии до пяти побед меняет ваш отдельный онлайн-рейтинг.</p>
+    <p>Поиск подбирает игрока с разницей рейтинга не больше 200 очков. Рейтинг меняется после серии до пяти побед: против равного соперника это +16 за победу или −16 за поражение.</p>
     <div class="online-my-rating">Ваш PvP-рейтинг <b>${profile?.rating ?? '—'}</b><small>${profile?`${profile.wins} побед · ${profile.losses} поражений`: 'Появится после входа через VK/ОК'}</small></div>
     ${profile?.history?.length?`<div class="online-history"><strong>Последние серии</strong>${profile.history.slice(0,3).map(x=>`<span>${x.won?'Победа':'Поражение'} · ${escapeHtml(formatPlayer(x.opponent))} <b>${x.delta>0?'+':''}${x.delta}</b></span>`).join('')}</div>`:''}
     ${endpoint?button('search','ИСКАТЬ МАТЧ'): '<p class="online-note">Адрес сервера пока не указан. После публикации Worker впишите его в <code>js/online_config.js</code>.</p>'}
     ${endpoint?button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small'):''}
-    ${leaderboard?`<div class="online-ranking"><h3>Топ-20 игроков</h3>${leaderboard.length?leaderboard.map((p,i)=>`<div><span>${i+1}. ${escapeHtml(formatPlayer(p.playerId))}</span><b>${p.rating}</b></div>`).join(''):'<p>Пока нет завершённых рейтинговых серий.</p>'}</div>`:''}
-    <div class="online-divider">Или сыграть с другом без рейтинга</div>
-    <p class="online-note">Для игры с другом создайте комнату и отправьте код. Эта серия не влияет на PvP-рейтинг.</p>
+    ${renderRanking()}
+    <div class="online-divider">Игра с другом по сети · без рейтинга</div>
+    <p class="online-note">Создайте комнату и отправьте код другу. Он должен войти через другой аккаунт VK/ОК. Другой Wi-Fi не помешает: оба подключаются к серверу игры.</p>
     ${endpoint?button('create','Создать комнату',false,'online-btn-secondary'):''}
     <form id="online-join-form" class="online-join">
       <input id="online-room-code" type="text" inputmode="text" autocomplete="off" maxlength="10" placeholder="КОД КОМНАТЫ" aria-label="Код комнаты" ${endpoint?'':'disabled'} required>
@@ -81,6 +81,12 @@ function renderLobby() {
     </form>
     ${local?'<p class="online-note">Для локальной проверки откройте игру с параметрами <code>?debugPlayer=101</code> и <code>?debugPlayer=202</code> в разных окнах.</p>':''}
   </section>`;
+}
+function renderRanking() {
+  if (!leaderboard) return '';
+  return `<div class="online-ranking"><h3>Топ-20 игроков</h3>${leaderboard.length?
+    leaderboard.map((p,i)=>`<div><span>${i+1}. ${escapeHtml(formatPlayer(p.playerId))}<small>${p.series ?? 0} серий</small></span><b>${p.rating}</b></div>`).join(''):
+    '<p>Пока нет игроков в рейтинге.</p>'}</div>`;
 }
 function formatPlayer(id) {
   const [platform,value]=String(id||'').split(':');
@@ -90,9 +96,11 @@ function renderQueue() {
   if (!isOpen() || !queueing) return;
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem online-search-icon">⚔️</div><h2>Ищем соперника</h2>
-    <p>Сначала подбираем игрока с близким рейтингом. Если поиск затянется, допустимая разница постепенно увеличится.</p>
+    <p>Система ищет тех, кто тоже нажал «Искать матч» и отличается по рейтингу не больше чем на 200 очков. Если никого нет, поиск завершится через 90 секунд.</p>
     <p class="online-search-clock">В поиске: <b data-queue-clock>00:00</b></p>
     ${button('cancel_search','Отменить поиск',false,'online-btn-secondary')}
+    ${button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small')}
+    ${renderRanking()}
   </section>`;
   updateClocks();
 }
@@ -119,7 +127,7 @@ function renderMatch() {
   }[m.stage] || 'Матч';
   const duel = m.lastDuel;
   let body = '';
-  if (m.stage === 'waiting') body = `<div class="online-focus"><h2>Пригласите друга</h2><p>Отправьте ему этот код. Пока друг подключается, комнату можно закрыть и открыть снова на том же устройстве.</p><div class="online-code">${room}</div>${button('copy','Скопировать код')}</div>`;
+  if (m.stage === 'waiting') body = `<div class="online-focus"><h2>Пригласите друга</h2><p>Отправьте код другу. Ему нужен отдельный аккаунт VK/ОК: он открывает «Играть онлайн» и вводит код внизу экрана. Комнату можно закрыть и открыть снова.</p><div class="online-code">${room}</div>${button('copy','Скопировать код')}</div>`;
   if (m.stage === 'draft') {
     const entry = fighter(m.currentCard);
     const cardHtml = entry ? card({id:entry.id,state:0,prime:false}) : '';
@@ -317,7 +325,14 @@ async function enterRoom(code, create=false) {
   try {
     if (!endpoint) throw new Error('Адрес сервера пока не задан');
     await authenticate();
-    const result = await api(create?'/room/create':`/room/${code}/join`);
+    const path=create?'/room/create':`/room/${code}/join`;
+    let result;
+    try { result=await api(path); }
+    catch(error) {
+      if(!/Сеанс истёк/.test(error.message)) throw error;
+      await authenticate(true);
+      result=await api(path);
+    }
     if(Number.isFinite(result.serverNow)) clockOffset=result.serverNow-Date.now();
     room = create?result.room:code;
     sessionStorage.setItem(storageKey,room);
@@ -367,15 +382,19 @@ root.addEventListener('click',event => {
   if (action==='cancel_search') return cancelSearch();
   if (action==='ranking') {
     (async()=>{
-      try { await authenticate();leaderboard=(await apiGet('/rating/top')).top;renderLobby(); }
+      try {
+        await authenticate();
+        leaderboard=(await apiGet('/rating/top')).top;
+        if(!view) queueing?renderQueue():renderLobby();
+      }
       catch(error) {setError(error.message);}
     })();
     return;
   }
   if (action==='create') return enterRoom(null,true);
   if (action==='copy') {
-    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(room).then(()=>setStatus('Код скопирован')).catch(()=>setStatus(`Код комнаты: ${room}`));
-    else setStatus(`Код комнаты: ${room}`);
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(room).then(()=>setStatus('Код скопирован')).catch(()=>setStatus(`Копирование недоступно. Удерживайте код ${room} и скопируйте его вручную.`));
+    else setStatus(`Удерживайте код ${room} и скопируйте его вручную.`);
     return;
   }
   if (!view) return;

@@ -21,6 +21,7 @@
 .online-ranking { text-align:left; margin-top:14px; padding:12px; background:#101b30; border:1px solid #485b79; border-radius:14px; max-height:300px; overflow:auto; }
 .online-ranking h3 { color:#f0cd83; font-size:15px; text-align:center; margin:0 0 8px; }
 .online-ranking>div { display:flex; justify-content:space-between; padding:4px 8px; border-bottom:1px solid #33425c; font-size:13px; }
+.online-ranking>div small { display:block; color:#adbed7; font-size:11px; }
 .online-ranking b { color:#f2c574; }
 .online-search-clock { font:700 17px system-ui; color:#f0cf90!important; }.online-search-clock b { font:800 25px ui-monospace,monospace; }
 .online-search-icon { animation:online-pulse 1.5s ease-in-out infinite alternate; }
@@ -47,7 +48,7 @@
 .online-turn-clock { text-align:center; color:#d8e2f1; font-size:13px; }.online-turn-clock b { color:#f3c87e; font-family:ui-monospace,monospace; }
 .online-result-rating { background:#233451; border:1px solid #81704c; padding:12px; border-radius:12px; color:#e8eef9; }
 .online-result-rating b { font-size:24px; color:#f4cc80; }.online-result-rating strong { margin-left:8px; font-size:18px; color:#a3e0ab; }
-.online-code { font-size:clamp(22px,5vw,34px); margin:12px; }
+.online-code { font-size:clamp(22px,5vw,34px); margin:12px; user-select:all; -webkit-user-select:all; }
 .online-arena { text-align:center; color:#efd59a; font-weight:800; padding:3px; }
 .online-focus { max-width:680px; padding:16px; margin:14px auto; text-align:center; }
 .online-step { font-size:11px; font-weight:800; color:#dcb877; letter-spacing:.13em; }
