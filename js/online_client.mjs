@@ -32,9 +32,10 @@ const local = ['localhost','127.0.0.1'].includes(location.hostname);
 const configured = String(window.SOUL_ARENA_ONLINE_ENDPOINT || '').trim().replace(/\/+$/, '');
 const endpoint = configured || (local ? 'http://127.0.0.1:8787' : '');
 let token = null, socket = null, room = null, view = null, reconnectTimer = null;
-let connecting = false, closed = false, pending = false, primeSelection = new Set(), status = '';
+let connecting = false, closed = false, pending = false, primeSelection = new Set(), battleSelection = null, status = '';
 let queueing = false, queueSince = null, queueTimer = null, profile = null, leaderboard = null;
 let presence = null, secondTimer = null, clockOffset = 0;
+let duelExpanded = false, lastRenderedRoom = null, lastRenderedVersion = -1;
 
 function setStatus(value) { status = value; ui.connection.textContent = value; }
 function setError(value) {
@@ -46,16 +47,34 @@ function isMyTurn(match, seat) { return match.turn === seat; }
 function own(match, seat) { return match.teams[seat] || []; }
 function opponent(match, seat) { return match.teams[1-seat] || []; }
 function fighterName(id) { return fighter(id)?.public?.name || `Боец #${id}`; }
-function arenaName(id) { return arenaCatalog.find(a => a.id === id)?.publicName || 'Арена'; }
-function statusName(state) { return ['Свежий','Лёгкие раны','Ранен','На грани','Выбыл'][state] || '—'; }
+function arena(id) { return arenaCatalog.find(a => a.id === id); }
+function arenaName(id) { return arena(id)?.publicName || 'Арена'; }
+function statusName(state) { return ['Свежий','Ранен','Истощён','На грани','Мёртв'][state] || '—'; }
+function rankTitle(rating) {
+  const score=Number(rating)||0;
+  if(score>=2500) return 'Властелин арены';
+  if(score>=2400) return 'Хранитель арены';
+  if(score>=2200) return 'Легенда';
+  if(score>=2000) return 'Чемпион';
+  if(score>=1800) return 'Грандмастер';
+  if(score>=1600) return 'Мастер';
+  if(score>=1400) return 'Ветеран';
+  if(score>=1200) return 'Боец';
+  if(score>=1000) return 'Любитель';
+  return 'Новичок';
+}
+function portrait(id) {
+  const image=fighter(id)?.public?.portrait;
+  return image?`<img loading="lazy" decoding="async" src="images/${encodeURIComponent(image)}" alt="">`:
+    escapeHtml(fighter(id)?.public?.emoji||'⚔️');
+}
 function card(item, selectable = false, selected = false) {
   const entry = fighter(item.id);
   const name = escapeHtml(entry?.public?.name || `Боец #${item.id}`);
-  const portrait = entry?.public?.portrait ? `images/${encodeURIComponent(entry.public.portrait)}` : '';
   const inactive = item.state >= 4;
-  return `<button type="button" class="online-fighter ${inactive?'is-out':''} ${selected?'is-selected':''}"
+  return `<button type="button" class="online-fighter online-state-${item.state} ${inactive?'is-out':''} ${selected?'is-selected':''}"
       ${selectable&&!inactive?'data-action="select" data-id="'+item.id+'"':'disabled'}>
-      <span class="online-avatar">${portrait?`<img loading="lazy" src="${portrait}" alt="">`:escapeHtml(entry?.public?.emoji||'⚔️')}</span>
+      <span class="online-avatar">${portrait(item.id)}</span>
       <span class="online-fighter-info"><b>${name}</b><small>${item.prime?'ПРАЙМ · ':''}${statusName(item.state)}</small></span>
       ${selected?'<span class="online-check">✓</span>':''}
     </button>`;
@@ -63,11 +82,61 @@ function card(item, selectable = false, selected = false) {
 function button(action, label, disabled = false, extra = '') {
   return `<button type="button" class="online-btn ${extra}" data-action="${action}" ${disabled?'disabled':''}>${label}</button>`;
 }
+function miniTeam(list, label, side) {
+  return `<div class="online-mini-team online-mini-${side}"><strong>${escapeHtml(label)}</strong><div class="online-mini-portraits">${
+    list.length?list.map(item=>`<span class="online-mini-fighter ${item.state>=4?'is-out':''} ${item.prime?'is-prime':''}"
+      title="${escapeHtml(fighterName(item.id))} · ${item.prime?'Прайм · ':''}${statusName(item.state)}"
+      aria-label="${escapeHtml(fighterName(item.id))}, ${item.prime?'Прайм, ':''}${statusName(item.state)}">${portrait(item.id)}</span>`).join(''):
+    '<span class="online-mini-empty">Пока пусто</span>'}</div><small>${list.filter(item=>item.state<4).length} в строю</small></div>`;
+}
+function duelFighter(id, prime, before, after, won) {
+  return `<div class="online-duel-fighter ${won?'is-winner':'is-loser'}">
+    <span class="online-duel-portrait">${portrait(id)}</span>
+    <div><strong>${escapeHtml(fighterName(id))}</strong><small>${prime==null?'Форма неизвестна':prime?'Прайм':'База'} · ${before==null?'Состояние до боя неизвестно':statusName(before)} → ${statusName(after)}</small></div>
+    <b>${won?'ПОБЕДИЛ':'ВЫБЫЛ'}</b></div>`;
+}
+function renderDuel(duel) {
+  if (!duel) return '';
+  const winnerIsA=duel.winnerId===duel.fighterA;
+  const beforeA=duel.fighterAStateBefore ?? (winnerIsA?duel.winnerStateBefore:null);
+  const beforeB=duel.fighterBStateBefore ?? (!winnerIsA?duel.winnerStateBefore:null);
+  return `<section class="online-duel ${duelExpanded?'is-expanded':''}" aria-label="Результат последней дуэли">
+    <button type="button" class="online-duel-toggle" data-action="toggle_duel" aria-expanded="${duelExpanded}">
+      <span>⚔️ Дуэль ${Number(duel.round)||''} · ${escapeHtml(fighterName(duel.winnerId))} победил</span><span>${duelExpanded?'Свернуть':'Разбор ▾'}</span></button>
+    ${duelExpanded?`<div class="online-duel-content">
+      <div class="online-duel-pair">
+        ${duelFighter(duel.fighterA,duel.fighterAPrime,beforeA,winnerIsA?duel.winnerStateAfter:duel.loserStateAfter,winnerIsA)}
+        <span class="online-duel-vs">VS</span>
+        ${duelFighter(duel.fighterB,duel.fighterBPrime,beforeB,winnerIsA?duel.loserStateAfter:duel.winnerStateAfter,!winnerIsA)}
+      </div>
+      <div class="online-duel-facts"><b>РАЗБОР БОЯ</b>
+        <span>Арена: ${escapeHtml(arenaName(duel.arenaId))}.</span>
+        ${duel.difficulty?`<span>Характер боя: ${escapeHtml(duel.difficulty)}.</span>`:''}
+        <span>${duel.fatiguePrimary?'Учитывались повреждения от предыдущих дуэлей.':'Оба бойца начинали свежими; использован проверенный исход этой пары.'}</span>
+        <span>Победитель продолжит матч в состоянии «${statusName(duel.winnerStateAfter)}».</span>
+      </div>
+    </div>`:''}</section>`;
+}
+function eventLine(event, seat) {
+  const who=event.seat===seat?'Вы':view?.match?.mode==='friend'?'Друг':'Соперник';
+  if(event.duel) return `Дуэль ${event.duel.round||event.round}: ${fighterName(event.duel.winnerId)} победил`;
+  if(event.type==='draft') return `${who} ${event.choice==='keep'?'оставили':'передали'} карту ${fighterName(event.cardId)}`;
+  if(event.type==='roll_prime') return `${who} получили ${event.count} форм Прайм`;
+  if(event.type==='choose_prime') return `${who} подтвердили Прайм`;
+  if(event.type==='spin_arena') return `Выпала арена «${arenaName(event.arenaId)}»`;
+  if(event.type==='roll_battle') return 'Жребий определил порядок выхода бойцов';
+  if(event.type==='place') return `${who} выставили ${fighterName(event.fighterId)}`;
+  if(event.type==='surrender') return `${who} сдались`;
+  if(event.type==='timeout') return event.seat===seat?'Время вашего хода истекло':'У соперника истекло время хода';
+  return '';
+}
 function renderLobby() {
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem">⚔️</div><h2>Найти соперника</h2>
     <p>Поиск подбирает игрока с разницей рейтинга не больше 200 очков. Рейтинг меняется после серии до пяти побед: против равного соперника это +16 за победу или −16 за поражение.</p>
-    <div class="online-my-rating">Ваш PvP-рейтинг <b>${profile?.rating ?? '—'}</b><small>${profile?`${profile.wins} побед · ${profile.losses} поражений`: 'Появится после входа через VK/ОК'}</small></div>
+    <div class="online-my-rating">Ваш PvP-рейтинг <b>${profile?.rating ?? '—'}</b>
+      ${profile?`<span class="online-rank-title">${rankTitle(profile.rating)}</span>`:''}
+      <small>${profile?`${profile.wins} побед · ${profile.losses} поражений`: 'Появится после входа через VK/ОК'}</small></div>
     ${profile?.history?.length?`<div class="online-history"><strong>Последние серии</strong>${profile.history.slice(0,3).map(x=>`<span>${x.won?'Победа':'Поражение'} · ${escapeHtml(formatPlayer(x.opponent))} <b>${x.delta>0?'+':''}${x.delta}</b></span>`).join('')}</div>`:''}
     ${endpoint?button('search','ИСКАТЬ МАТЧ'): '<p class="online-note">Адрес сервера пока не указан. После публикации Worker впишите его в <code>js/online_config.js</code>.</p>'}
     ${endpoint?button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small'):''}
@@ -85,7 +154,7 @@ function renderLobby() {
 function renderRanking() {
   if (!leaderboard) return '';
   return `<div class="online-ranking"><h3>Топ-20 игроков</h3>${leaderboard.length?
-    leaderboard.map((p,i)=>`<div><span>${i+1}. ${escapeHtml(formatPlayer(p.playerId))}<small>${p.series ?? 0} серий</small></span><b>${p.rating}</b></div>`).join(''):
+    leaderboard.map((p,i)=>`<div><span>${i+1}. ${escapeHtml(formatPlayer(p.playerId))}<small>${rankTitle(p.rating)} · ${p.series ?? 0} серий</small></span><b>${p.rating}</b></div>`).join(''):
     '<p>Пока нет игроков в рейтинге.</p>'}</div>`;
 }
 function formatPlayer(id) {
@@ -120,72 +189,133 @@ function renderMatch() {
   if (!view || !isOpen()) return;
   const {match:m,seat} = view;
   const mine = isMyTurn(m,seat);
+  const otherLabel = m.mode==='friend'?'Друг':'Соперник';
+  const oldStage = ui.content.querySelector('[data-online-stage]')?.dataset.onlineStage;
+  const oldScroll = root.scrollTop;
+  const focused = document.activeElement?.dataset;
+  const focusAction = focused?.action, focusId = focused?.id;
+  const newDuel = lastRenderedRoom===room && m.version>lastRenderedVersion &&
+    ((m.events||[]).some(event=>event.version>lastRenderedVersion && event.duel) ||
+      (m.lastDuel && Number(m.lastDuel.version)>lastRenderedVersion));
+  if(lastRenderedRoom!==room) {lastRenderedRoom=room;lastRenderedVersion=-1;duelExpanded=false;}
+  if(newDuel) duelExpanded=true;
+  lastRenderedVersion=Math.max(lastRenderedVersion,Number(m.version)||0);
   const matchCount = m.matchNumber || 1;
   const phase = {
     waiting:'Ожидание друга', draft:'Драфт', prime:'Форма Прайм', arena:'Выбор арены',
-    battle_roll:'Жребий боя',battle:'Битва',match_end:'Матч завершён',series_end:'Серия завершена'
+    battle_roll:'Жребий боя', battle:'Битва', match_end:'Матч завершён', series_end:'Серия завершена'
   }[m.stage] || 'Матч';
-  const duel = m.lastDuel;
+  const team = (list,selectable,primeMode) => list.map(item=>
+    card(item,selectable,selectable && (primeMode?primeSelection.has(item.id):battleSelection===item.id))
+  ).join('') || '<p class="online-empty">Команда ещё не собрана</p>';
+  const primeChoose = m.stage==='prime' && mine && m.primeRolled;
+  const placeChoose = m.stage==='battle' && mine;
+  const rolledArena=arena(m.arenaId);
+  const arenaImage=rolledArena?.background?`<img src="${escapeHtml(rolledArena.background)}" alt="">`:'';
   let body = '';
-  if (m.stage === 'waiting') body = `<div class="online-focus"><h2>Пригласите друга</h2><p>Отправьте код другу. Ему нужен отдельный аккаунт VK/ОК: он открывает «Играть онлайн» и вводит код внизу экрана. Комнату можно закрыть и открыть снова.</p><div class="online-code">${room}</div>${button('copy','Скопировать код')}</div>`;
+  if (m.stage === 'waiting') body = `<div class="online-focus"><span class="online-step">ИГРА С ДРУГОМ</span><h2>Пригласите второго игрока</h2>
+    <p>Отправьте код комнаты другу. Он входит через другой аккаунт VK или ОК и вводит код в разделе «Играть онлайн».</p>
+    <div class="online-code">${escapeHtml(room)}</div>${button('copy','Скопировать код')}</div>`;
   if (m.stage === 'draft') {
-    const entry = fighter(m.currentCard);
-    const cardHtml = entry ? card({id:entry.id,state:0,prime:false}) : '';
-    body = `<div class="online-focus"><span class="online-step">Карта ${m.draftIndex+1} / 10</span><h2>${mine?'Ваша очередь выбирать':'Друг выбирает карту'}</h2>
-      <div class="online-draft-card">${cardHtml}</div>
-      ${mine?`<div class="online-actions">${button('keep','Оставить себе')}${button('pass','Отдать другу',false,'online-btn-secondary')}</div>`:'<p>Ждём выбор друга. Обновление придёт автоматически.</p>'}</div>`;
+    const entry=fighter(m.currentCard);
+    body = `<div class="online-focus"><span class="online-step">КАРТА ${m.draftIndex+1} ИЗ 10</span>
+      <h2>${mine?'Вы решаете, кому достанется боец':`${otherLabel} выбирает бойца`}</h2>
+      <p>Команды обоих игроков обновляются после каждого выбора.</p>
+      <div class="online-draft-card">${entry?card({id:entry.id,state:0,prime:false}):''}</div>
+      ${mine?`<div class="online-actions">${button('keep','Оставить себе')}${button('pass',`Отдать ${m.mode==='friend'?'другу':'сопернику'}`,false,'online-btn-secondary')}</div>`:
+      '<p>Ждём ход другого игрока. Ваши бойцы всегда видны выше и ниже.</p>'}</div>`;
   }
   if (m.stage === 'prime') {
-    const roll = m.primeCounts[seat];
-    if (!mine) body = `<div class="online-focus"><h2>Друг назначает Прайм</h2><p>${m.primesDone[seat]?'Ваши формы сохранены.':'Скоро настанет ваша очередь.'}</p></div>`;
-    else if (!m.primeRolled) body = `<div class="online-focus"><h2>Бросок на Прайм</h2><p>Сервер определит, сколько бойцов получит усиленную форму.</p>${button('roll_prime','Бросить кубик')}</div>`;
-    else body = `<div class="online-focus"><h2>Выберите ${roll} бойцов</h2><p>Выбрано: ${primeSelection.size} из ${roll}. Нажмите на карты своей команды.</p>${button('choose_prime','Подтвердить Прайм',primeSelection.size !== roll)}</div>`;
+    const count=m.primeCounts[seat];
+    body=!mine?`<div class="online-focus"><span class="online-step">ФОРМА ПРАЙМ</span><h2>${otherLabel} назначает Прайм</h2>
+        <p>${m.primesDone[seat]?'Ваши формы сохранены. Ждём выбора соперника.':'Ваш ход начнётся после выбора другого игрока.'}</p></div>`:
+      !m.primeRolled?`<div class="online-focus"><span class="online-step">ФОРМА ПРАЙМ</span><h2>Узнайте количество усиленных бойцов</h2>
+        <p>Сервер определит, сколько бойцов можно назначить в форму Прайм.</p>${button('roll_prime','Бросить кубик')}</div>`:
+      `<div class="online-focus"><span class="online-step">ВЫПАЛО: ${count}</span><h2>Назначьте Прайм</h2>
+        <p>Выберите ${count} бойцов ниже: ${primeSelection.size} из ${count} отмечено.</p></div>`;
   }
-  if (m.stage === 'arena') body = `<div class="online-focus"><h2>${mine?'Выберите арену жеребьёвкой':'Друг выбирает арену'}</h2>
-    <p>Арену определяет сервер. Её условия влияют на бой.</p>${mine?button('spin_arena','Крутить колесо'):''}</div>`;
-  if (m.stage === 'battle_roll') body = `<div class="online-focus"><h2>${escapeHtml(arenaName(m.arenaId))}</h2>
-    <p>Жребий определит, кто выставляет бойца первым.</p>${m.startingPlayer===seat?button('roll_battle','Бросить кубики'):'<p>Друг проводит жеребьёвку.</p>'}</div>`;
+  if (m.stage === 'arena') body = `<div class="online-focus"><span class="online-step">АРЕНА</span>
+    <h2>${mine?'Определите арену':`${otherLabel} определяет арену`}</h2>
+    <p>Жребий проходит на сервере. Победитель матча будет рассчитан с учётом выпавшей арены.</p>
+    ${mine?button('spin_arena','Крутить колесо'):'<p>Ожидаем результат жеребьёвки.</p>'}</div>`;
+  if (m.stage === 'battle_roll') body = `<div class="online-focus"><span class="online-step">АРЕНА ВЫПАЛА</span>
+    ${arenaImage?`<div class="online-arena-picture">${arenaImage}</div>`:''}<h2>${escapeHtml(arenaName(m.arenaId))}</h2>
+    <p>${escapeHtml(rolledArena?.shortDescription||'Жребий определит, кто выставит бойца первым.')}</p>
+    ${m.startingPlayer===seat?button('roll_battle','Бросить кубики'):`<p>${otherLabel} проводит жребий порядка выхода.</p>`}</div>`;
   if (m.stage === 'battle') {
-    const theirPlacement = m.placements[1-seat];
-    body = `<div class="online-focus"><span class="online-step">Дуэль ${m.round}</span><h2>${mine?'Выставьте бойца':'Друг выставляет бойца'}</h2>
-      <p>${theirPlacement!==null?`Друг выставил: <b>${escapeHtml(fighterName(theirPlacement))}</b>.`:'Выбирайте живого бойца своей команды.'}</p>
-      ${m.battleRoll?`<small>Жребий: ${m.battleRoll[seat]} : ${m.battleRoll[1-seat]}</small>`:''}</div>`;
+    const theirPlacement=m.placements[1-seat];
+    const myPlacement=m.placements[seat];
+    const actionHint=mine?(theirPlacement!==null?`${otherLabel} выставил бойца ${fighterName(theirPlacement)}. Выберите контрпик ниже.`:
+      'Выберите бойца из своей команды ниже и подтвердите выход.'):
+      (myPlacement!==null?`Вы выставили ${fighterName(myPlacement)}. ${otherLabel} выбирает ответ.`:
+      `${otherLabel} выбирает первого бойца. Следите за командами.`);
+    body = `<div class="online-focus online-battle-focus">${arenaImage?`<div class="online-battle-backdrop" aria-hidden="true">${arenaImage}</div>`:''}
+      <span class="online-step">ДУЭЛЬ ${m.round}</span>
+      <h2>${mine?'Ваш ход: выставьте бойца':`${otherLabel} выставляет бойца`}</h2>
+      <p>${escapeHtml(actionHint)}</p>
+      ${m.battleRoll?`<div class="online-roll-result">Жребий: вы ${m.battleRoll[seat]} · соперник ${m.battleRoll[1-seat]}</div>`:''}
+      ${theirPlacement!==null?`<div class="online-counterpick"><span>УЖЕ ВЫСТАВЛЕН</span>${card(opponent(m,seat).find(item=>item.id===theirPlacement)||{id:theirPlacement,state:0,prime:false})}</div>`:''}
+    </div>`;
   }
   if (m.stage === 'match_end' || m.stage === 'series_end') {
-    const series = m.stage === 'series_end';
-    const won = (series?m.seriesWinner:m.matchWinner) === seat;
-    const result = m.ratingResult;
-    const delta = result?.delta?.[seat] || 0;
-    const reason = series && m.lastAction?.type==='timeout' ?
-      (won?'Соперник не успел сделать ход.':'Время вашего хода истекло.') :
-      series && m.lastAction?.type==='surrender' ?
-      (won?'Соперник сдался.':'Вы сдались.') : '';
-    const ratingText = !m.ranked || !series ? '' : !m.ratingFinalized ?
-      '<p>Сохраняем результат серии и рейтинг…</p>' : result?.rated ?
-      `<div class="online-result-rating">PvP-рейтинг: <b>${result.after[seat]}</b> <strong>${delta>0?'+':''}${delta}</strong></div>` :
+    const series=m.stage==='series_end';
+    const won=(series?m.seriesWinner:m.matchWinner)===seat;
+    const result=m.ratingResult;
+    const delta=result?.delta?.[seat]||0;
+    const reason=series&&m.lastAction?.type==='timeout'?
+      (won?'У соперника истекло время хода.':'Время вашего хода истекло.'):
+      series&&m.lastAction?.type==='surrender'?(won?'Соперник сдался.':'Вы сдались.') : '';
+    const ratingText=!m.ranked||!series?'':!m.ratingFinalized?
+      '<p>Сервер сохраняет результат серии и рейтинг…</p>':result?.rated?
+      `<div class="online-result-rating">Ваш PvP-рейтинг: <b>${result.after[seat]}</b> <strong>${delta>0?'+':''}${delta}</strong><span class="online-rank-title">${rankTitle(result.after[seat])}</span></div>`:
       '<p>Повторная встреча: рейтинг не изменился.</p>';
-    body = `<div class="online-focus"><h2>${won?'Победа!':'Поражение'}</h2>
-      <p>${reason|| (series?'Серия до пяти побед завершена.':'Матч завершён. Начните следующий, когда оба будут готовы.')}</p>${ratingText}
-      ${m.ready[seat]?'<p>Вы готовы. Ждём соперника.</p>':button('ready',series&&m.ranked?'Реванш без рейтинга':series?'Сыграть новую серию':'Следующий матч',series&&m.ranked&&!m.ratingFinalized)}
+    body=`<div class="online-focus online-finish"><span class="online-step">${series?'СЕРИЯ ДО ПЯТИ ПОБЕД':'МАТЧ'}</span>
+      <h2>${won?'Победа!':'Поражение'}</h2><p>${reason||(series?'Серия завершена.':'Матч завершён. Следующий начнётся, когда оба игрока будут готовы.')}</p>
+      ${ratingText}${m.ready[seat]?'<p>Вы готовы. Ждём соперника.</p>':button('ready',series&&m.ranked?'Реванш без рейтинга':series?'Новая серия':'Следующий матч',series&&m.ranked&&!m.ratingFinalized)}
       ${series&&m.mode!=='friend'?button('search_again','Найти нового соперника',false,'online-btn-secondary'):''}
     </div>`;
   }
-  const primeChoose = m.stage==='prime' && mine && m.primeRolled;
-  const placeChoose = m.stage==='battle' && mine;
-  const team = (list,selectable) => list.map(item=>card(item,selectable,selectable && (primeChoose?primeSelection.has(item.id):false))).join('') || '<p class="online-empty">Команда ещё не собрана</p>';
-  const duelHtml = duel ? `<aside class="online-last"><b>Последняя дуэль</b><span>${escapeHtml(fighterName(duel.fighterA))} ⚔️ ${escapeHtml(fighterName(duel.fighterB))}</span><small>Победил ${escapeHtml(fighterName(duel.winnerId))} · ${statusName(duel.winnerStateAfter)}</small></aside>` : '';
-  ui.content.innerHTML = `<section class="online-board">
-    <div class="online-score"><span>ВЫ <b>${m.wins[seat]}</b></span><div>МАТЧ ${matchCount} · ${phase}<small>${m.mode==='matchmaking'?(m.ratingEligible?'РЕЙТИНГОВАЯ СЕРИЯ':'ПОВТОРНАЯ ВСТРЕЧА БЕЗ РЕЙТИНГА'):m.mode==='rematch'?'РЕВАНШ БЕЗ РЕЙТИНГА':'ИГРА С ДРУГОМ · БЕЗ РЕЙТИНГА'}</small></div><span><b>${m.wins[1-seat]}</b> ${m.mode==='friend'?'ДРУГ':'СОПЕРНИК'}</span></div>
-    <div class="online-roomline">${m.mode==='friend'?`<span>Комната <b>${room}</b></span>${button('copy','Копировать код',false,'online-btn-small')}`:`<span>Сетевой матч · <b>${room}</b></span>`}<span class="online-presence" data-online-presence>${presence===false?'Соперник переподключается':presence===true?'Соперник в сети':''}</span></div>
-    ${m.turnDeadlineAt?`<div class="online-turn-clock">${mine?'Ваш ход':'Ход соперника'} · осталось <b data-turn-clock>03:00</b></div>`:''}
+  const modeLabel=m.mode==='matchmaking'?(m.ratingEligible?'РЕЙТИНГОВАЯ СЕРИЯ':'ВСТРЕЧА БЕЗ РЕЙТИНГА'):
+    m.mode==='rematch'?'РЕВАНШ БЕЗ РЕЙТИНГА':'ИГРА С ДРУГОМ · БЕЗ РЕЙТИНГА';
+  const history=(Array.isArray(m.events)?m.events:[]).filter(event=>event.matchNumber===m.matchNumber)
+    .map(event=>eventLine(event,seat)).filter(Boolean).slice(-8).reverse();
+  const ownList=own(m,seat),theirList=opponent(m,seat);
+  ui.content.innerHTML = `<section class="online-board" data-online-stage="${escapeHtml(m.stage)}">
+    <div class="online-score"><div class="online-score-side"><small>ВЫ</small><b>${m.wins[seat]}</b></div>
+      <div class="online-score-center"><b>Победы в серии</b><span>Матч ${matchCount} · ${phase}</span><small>${modeLabel}</small></div>
+      <div class="online-score-side"><small>${otherLabel.toUpperCase()}</small><b>${m.wins[1-seat]}</b></div></div>
+    <div class="online-roomline">${m.mode==='friend'?`<span>Комната <b>${escapeHtml(room)}</b></span>${button('copy','Копировать код',false,'online-btn-small')}`:
+      `<span>Матч с соперником</span>`}<span class="online-presence" data-online-presence>${presence===false?'Соперник переподключается':presence===true?'Соперник в сети':''}</span></div>
+    ${m.turnDeadlineAt?`<div class="online-turn-clock">${mine?'ВАШ ХОД':'ХОД СОПЕРНИКА'} · осталось <b data-turn-clock>03:00</b></div>`:''}
+    <div class="online-mini-score">${miniTeam(ownList,'Ваши бойцы','own')}${miniTeam(theirList,`Бойцы ${m.mode==='friend'?'друга':'соперника'}`,'other')}</div>
     ${m.arenaId?`<div class="online-arena">${escapeHtml(arenaName(m.arenaId))}</div>`:''}
-    ${body}${duelHtml}
-    <div class="online-teams"><section><h3>Ваши бойцы <small>${own(m,seat).filter(c=>c.state<4).length} в строю</small></h3><div class="online-roster">${team(own(m,seat),primeChoose||placeChoose)}</div></section>
-    <section><h3>Бойцы друга <small>${opponent(m,seat).filter(c=>c.state<4).length} в строю</small></h3><div class="online-roster">${team(opponent(m,seat),false)}</div></section></div>
-    <footer class="online-footer">${!['waiting','series_end'].includes(m.stage)?button('surrender','Сдаться',false,'online-btn-danger'):button('new_room','Выйти из комнаты',false,'online-btn-secondary')}</footer>
+    <div class="online-main-grid">
+      <section class="online-own-team online-team-panel"><h3>Ваши бойцы <small>${ownList.filter(c=>c.state<4).length} в строю</small></h3>
+      <div class="online-roster">${team(ownList,primeChoose||placeChoose,primeChoose)}</div>
+      ${primeChoose?`<div class="online-team-action">${button('choose_prime','Подтвердить Прайм',primeSelection.size!==m.primeCounts[seat])}</div>`:''}
+      ${placeChoose?`<div class="online-team-action">${button('confirm_place','Подтвердить выход бойца',battleSelection===null)}</div>`:''}</section>
+      <div class="online-center">${renderDuel(m.lastDuel)}${body}</div>
+      <section class="online-other-team online-team-panel"><h3>Бойцы ${m.mode==='friend'?'друга':'соперника'} <small>${theirList.filter(c=>c.state<4).length} в строю</small></h3>
+      <div class="online-roster">${team(theirList,false,false)}</div></section>
+    </div>
+    ${history.length?`<details class="online-event-log"><summary>Ход текущего матча</summary><ol>${history.map(line=>`<li>${escapeHtml(line)}</li>`).join('')}</ol></details>`:''}
+    <footer class="online-footer">${!['waiting','series_end'].includes(m.stage)?button('surrender','Сдаться',false,'online-btn-danger'):
+      button('new_room','Выйти из комнаты',false,'online-btn-secondary')}</footer>
   </section>`;
+  if(pending) ui.content.querySelectorAll('[data-action]').forEach(element=>{
+    if(element.dataset.action!=='toggle_duel') element.disabled=true;
+  });
+  if(oldStage===m.stage && !newDuel) {
+    root.scrollTop=oldScroll;
+    if(focusAction) {
+      const selected=[...ui.content.querySelectorAll('[data-action]')].find(element=>
+        element.dataset.action===focusAction && (focusId==null || element.dataset.id===focusId));
+      if(selected && !selected.disabled) selected.focus({preventScroll:true});
+    }
+  } else root.scrollTop=0;
   updateClocks();
 }
+
 async function api(path, payload, authorized = true) {
   const headers = {'Content-Type':'application/json'};
   if (authorized) headers.Authorization = `Bearer ${token}`;
@@ -272,6 +402,7 @@ async function cancelSearch() {
 function resetRoom() {
   clearTimeout(reconnectTimer);socket?.close(1000,'Left room');socket=null;
   room=null;view=null;pending=false;connecting=false;presence=null;
+  battleSelection=null;primeSelection.clear();duelExpanded=false;lastRenderedRoom=null;lastRenderedVersion=-1;
   sessionStorage.removeItem(storageKey);
   renderLobby();setStatus('Выберите следующую игру');
   refreshProfile().catch(error=>setError(error.message));
@@ -284,27 +415,41 @@ function connectSocket() {
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(url,['soul-online-v1',`token.${token}`]);
   socket = ws;
-  ws.onopen = () => { connecting=false; setStatus('Соединение установлено'); setError(''); };
+  const connectedRoom=room;
+  ws.onopen = () => {
+    if(socket!==ws || room!==connectedRoom) return;
+    connecting=false; setStatus('Соединение установлено'); setError('');
+  };
   ws.onmessage = event => {
+    if(socket!==ws || room!==connectedRoom) return;
     try {
       const message = JSON.parse(event.data);
-      if (message.type === 'error') { pending=false; setError(message.error); }
+      if (message.type === 'error') { pending=false; setError(message.error);renderMatch(); }
       if (message.type === 'presence') {
         presence=message.opponentConnected;
         const label=root.querySelector('[data-online-presence]');
         if(label) label.textContent=presence?'Соперник в сети':'Соперник переподключается';
       }
       if (message.type === 'snapshot') {
+        if(!message.match || !Number.isInteger(message.match.version) ||
+          (view?.match && message.match.version<view.match.version)) return;
         if(Number.isFinite(message.serverNow)) clockOffset=message.serverNow-Date.now();
         const prior=view?.match;
-        if (view?.match?.stage !== message.match.stage || view?.match?.turn !== message.match.turn) primeSelection.clear();
+        if (prior?.stage !== message.match.stage || prior?.turn !== message.match.turn) primeSelection.clear();
+        if (prior?.stage !== message.match.stage || prior?.turn !== message.match.turn ||
+          prior?.round !== message.match.round) battleSelection=null;
         view={match:message.match,seat:message.seat};
-        pending=false; setError(''); renderMatch();
+        pending=false; setError('');
+        setStatus(message.match.stage==='waiting'?'Ожидаем друга':
+          message.match.stage==='series_end'?'Серия завершена':
+          message.match.stage==='match_end'?'Матч завершён':
+          message.match.turn===message.seat?'Ваш ход':'Ждём соперника');
+        renderMatch();
         if(message.match.stage==='series_end' && message.match.ratingFinalized &&
           (!prior || !prior.ratingFinalized || prior.stage!=='series_end'))
           refreshProfile().catch(()=>{});
       }
-    } catch { setError('Сервер отправил некорректное сообщение'); }
+    } catch {pending=false;renderMatch();setError('Сервер отправил некорректное сообщение'); }
   };
   ws.onclose = () => {
     if (socket !== ws) return;
@@ -341,12 +486,13 @@ async function enterRoom(code, create=false) {
 }
 function sendAction(action) {
   if (pending || socket?.readyState !== WebSocket.OPEN || !view) { setError('Подождите соединения с сервером'); return; }
-  pending=true; setError('');
-  socket.send(JSON.stringify({type:'action',action:{...action,version:view.match.version}}));
+  pending=true; setError('');setStatus('Отправляем ход на сервер…');renderMatch();
+  try { socket.send(JSON.stringify({type:'action',action:{...action,version:view.match.version}})); }
+  catch {pending=false;renderMatch();setError('Не удалось отправить ход. Проверяем соединение.');}
 }
 function leave() {
   if(queueing) {stopQueue();api('/queue/cancel').catch(()=>{});}
-  root.classList.add('hidden'); closed=true; clearTimeout(reconnectTimer);
+  root.classList.add('hidden'); closed=true;pending=false;clearTimeout(reconnectTimer);
   socket?.close(1000,'Closed by player'); socket=null; connecting=false;
   window.closeGameModeSelect?.();
 }
@@ -406,9 +552,14 @@ root.addEventListener('click',event => {
   if (action==='new_room') {
     resetRoom();return;
   }
+  if (action==='toggle_duel') {
+    duelExpanded=!duelExpanded;renderMatch();return;
+  }
   if (action==='select') {
     const id = Number(target.dataset.id);
-    if (m.stage==='battle') return sendAction({type:'place',id});
+    if (m.stage==='battle' && m.turn===view.seat) {
+      battleSelection=battleSelection===id?null:id;renderMatch();return;
+    }
     if (m.stage==='prime') {
       if (primeSelection.has(id)) primeSelection.delete(id);
       else if (primeSelection.size < m.primeCounts[view.seat]) primeSelection.add(id);
@@ -416,8 +567,11 @@ root.addEventListener('click',event => {
     }
     return;
   }
+  if (action==='confirm_place' && m.stage==='battle' && m.turn===view.seat &&
+    m.teams[view.seat].some(item=>item.id===battleSelection && item.state<4))
+    return sendAction({type:'place',id:battleSelection});
   if (action==='choose_prime') return sendAction({type:action,ids:[...primeSelection]});
   if (action==='keep' || action==='pass') return sendAction({type:'draft',choice:action});
-  if (action==='surrender' && !window.confirm('Сдаться и отдать победу в серии другу?')) return;
+  if (action==='surrender' && !window.confirm('Сдаться и отдать победу в серии сопернику?')) return;
   if (['roll_prime','spin_arena','roll_battle','ready','surrender'].includes(action)) sendAction({type:action});
 });
