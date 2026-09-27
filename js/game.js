@@ -2057,7 +2057,7 @@
 
         window.SOUL_ARENA_R16 = Object.freeze({
             version: 'R16.0.0',
-            modes: Object.freeze({ local: 'ready', cpu: 'ready', online: 'future' }),
+            modes: Object.freeze({ local: 'ready', cpu: 'ready', online: 'ready' }),
             getActiveMode: () => activeGameMode,
             openModes: openGameModeSelect,
             startLocal: beginLocalTwoPlayer,

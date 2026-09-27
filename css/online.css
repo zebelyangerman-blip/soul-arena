@@ -1,0 +1,71 @@
+.online-screen { position:fixed; inset:0; z-index:3000; overflow:auto; background:radial-gradient(circle at 50% 0%,#203059 0,#0c1429 43%,#060b19 100%); color:#eef2ff; font:16px/1.45 system-ui,-apple-system,sans-serif; }
+.online-screen.hidden, .online-screen .hidden { display:none!important; }
+.online-screen * { box-sizing:border-box; }
+.online-wrap { max-width:1100px; margin:0 auto; padding:16px clamp(12px,3vw,32px) 48px; }
+.online-top { display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid #384365; padding:8px 0 16px; }
+.online-top small { letter-spacing:.13em; color:#dfba76; font-weight:800; font-size:11px; }
+.online-top h1 { margin:2px 0 0; font-size:clamp(24px,4vw,34px); font-weight:900; color:#f8fafc; }
+.online-close { min-width:44px; min-height:44px; border:1px solid #56617e; border-radius:12px; background:#18243c; color:white; cursor:pointer; }
+.online-connection { min-height:34px; color:#a8d8c4; font-size:13px; padding:8px 0 0; }
+.online-message { background:#572637; color:#fff0ef; padding:12px; border:1px solid #db6d83; border-radius:12px; margin:8px 0; }
+.online-panel,.online-focus { border:1px solid #4a5779; border-radius:20px; background:linear-gradient(160deg,#1c2b48,#10192f); box-shadow:0 12px 35px #03081872; }
+.online-lobby { margin:clamp(20px,5vw,60px) auto; max-width:540px; padding:clamp(20px,5vw,38px); text-align:center; }
+.online-lobby h2,.online-focus h2 { font-size:clamp(22px,3vw,30px); margin:8px 0; color:#fff; }
+.online-lobby p,.online-focus p { color:#c4cfe3; margin:8px 0 16px; }
+.online-lobby>.online-btn { margin:6px; }
+.online-my-rating { margin:16px auto; padding:12px; border:1px solid #8d7650; border-radius:14px; background:#17253d; color:#c5d2eb; }
+.online-my-rating b { display:block; font-size:32px; color:#f5ce7e; line-height:1.1; }
+.online-my-rating small { display:block; font-size:12px; color:#adbed7; }
+.online-history { display:flex; flex-wrap:wrap; gap:5px 10px; justify-content:center; margin:0 0 10px; font-size:11px; color:#becce4; }
+.online-history strong { flex-basis:100%; color:#e9cc8d; }.online-history b { color:#e9cc8d; }
+.online-ranking { text-align:left; margin-top:14px; padding:12px; background:#101b30; border:1px solid #485b79; border-radius:14px; max-height:300px; overflow:auto; }
+.online-ranking h3 { color:#f0cd83; font-size:15px; text-align:center; margin:0 0 8px; }
+.online-ranking>div { display:flex; justify-content:space-between; padding:4px 8px; border-bottom:1px solid #33425c; font-size:13px; }
+.online-ranking b { color:#f2c574; }
+.online-search-clock { font:700 17px system-ui; color:#f0cf90!important; }.online-search-clock b { font:800 25px ui-monospace,monospace; }
+.online-search-icon { animation:online-pulse 1.5s ease-in-out infinite alternate; }
+@keyframes online-pulse { to { transform:scale(1.15); filter:drop-shadow(0 0 10px #efcb83); } }
+.online-emblem { font-size:48px; }
+.online-btn { background:linear-gradient(#f0cb78,#bd8139); color:#161a28; border:1px solid #f2ce7f; border-radius:12px; padding:11px 18px; font:800 14px/1.25 system-ui; min-height:44px; cursor:pointer; box-shadow:0 3px 12px #090f2599; }
+.online-btn:hover:not(:disabled),.online-fighter:hover:not(:disabled) { filter:brightness(1.14); }
+.online-btn:disabled { opacity:.45; cursor:not-allowed; }
+.online-btn-secondary { background:#2a3d5e; color:#f1f5ff; border-color:#8295b5; }
+.online-btn-danger { background:#462833; color:#ffccd4; border-color:#a45c6e; }
+.online-btn-small { min-height:30px; padding:5px 10px; font-size:12px; }
+.online-divider { margin:18px 0 12px; font-size:12px; color:#a9b5ce; text-transform:uppercase; letter-spacing:.1em; }
+.online-join { display:flex; gap:8px; }
+.online-join input { width:100%; min-width:0; background:#101b30; border:1px solid #647391; border-radius:12px; color:#fff; font:700 15px system-ui; padding:10px; text-align:center; letter-spacing:.06em; text-transform:uppercase; }
+.online-note { font-size:12px; line-height:1.5; color:#9ba9c2!important; margin-top:18px!important; }
+.online-note code { color:#ead39a; }
+.online-score { display:grid; grid-template-columns:1fr 2fr 1fr; align-items:center; text-align:center; gap:4px; padding:10px 4px; background:#17243f; border:1px solid #4c5876; border-radius:15px; font-size:13px; font-weight:800; }
+.online-score b { font-size:25px; color:#f5c974; margin:0 5px; }
+.online-score>div { font-size:15px; }
+.online-score small { display:block; font-size:10px; letter-spacing:.1em; color:#a8b9d7; }
+.online-roomline { display:flex; align-items:center; justify-content:center; gap:10px; padding:10px 0; color:#b9c7dc; font-size:13px; }
+.online-roomline b,.online-code { color:#efcc81; letter-spacing:.12em; font-family:ui-monospace,monospace; }
+.online-presence { color:#a6dfbd; font-size:11px; }
+.online-turn-clock { text-align:center; color:#d8e2f1; font-size:13px; }.online-turn-clock b { color:#f3c87e; font-family:ui-monospace,monospace; }
+.online-result-rating { background:#233451; border:1px solid #81704c; padding:12px; border-radius:12px; color:#e8eef9; }
+.online-result-rating b { font-size:24px; color:#f4cc80; }.online-result-rating strong { margin-left:8px; font-size:18px; color:#a3e0ab; }
+.online-code { font-size:clamp(22px,5vw,34px); margin:12px; }
+.online-arena { text-align:center; color:#efd59a; font-weight:800; padding:3px; }
+.online-focus { max-width:680px; padding:16px; margin:14px auto; text-align:center; }
+.online-step { font-size:11px; font-weight:800; color:#dcb877; letter-spacing:.13em; }
+.online-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:12px auto; }
+.online-draft-card { display:flex; justify-content:center; margin:12px auto; max-width:210px; }
+.online-draft-card .online-fighter { width:100%; }
+.online-last { display:flex; flex-wrap:wrap; gap:8px 14px; justify-content:center; align-items:center; padding:10px; border:1px solid #4b5780; background:#121f38; border-radius:12px; font-size:13px; }
+.online-last b { color:#f0cc85; }.online-last small { color:#aebfdb; }
+.online-teams { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px; }
+.online-teams>section { min-width:0; padding:12px; border:1px solid #455474; border-radius:16px; background:#101b30; }
+.online-teams h3 { display:flex; justify-content:space-between; gap:6px; color:#f7dfac; font-size:17px; margin:0 0 12px; }
+.online-teams h3 small { color:#a3bad1; font-size:12px; font-weight:500; }
+.online-roster { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:8px; }
+.online-fighter { display:flex; align-items:center; width:100%; min-height:68px; gap:9px; padding:6px; text-align:left; border:1px solid #526483; border-radius:11px; background:#263752; color:white; cursor:pointer; overflow:hidden; }
+.online-fighter:disabled { cursor:default; }.online-fighter.is-out { opacity:.47; }.online-fighter.is-selected { border:2px solid #f2c870; background:#35425c; }
+.online-avatar { flex:0 0 52px; width:52px; height:52px; border-radius:8px; overflow:hidden; display:grid; place-items:center; background:#101827; font-size:26px; }
+.online-avatar img { width:100%; height:100%; object-fit:cover; }
+.online-fighter-info { min-width:0; display:flex; flex-direction:column; }.online-fighter-info b { font-size:12px; line-height:1.2; }.online-fighter-info small { font-size:10px; color:#e2c489; margin-top:4px; }
+.online-check { color:#f8da85; font-weight:900; margin-left:auto; }
+.online-empty { color:#a7b9cc; font-size:13px; }.online-footer { text-align:center; padding:18px; }
+@media(max-width:650px) { .online-wrap { padding:10px 9px 28px; }.online-top { padding:4px 5px 10px; }.online-score { grid-template-columns:1fr 1.5fr 1fr; font-size:11px; }.online-score>div { font-size:12px; }.online-teams { gap:7px; }.online-teams>section { padding:7px; }.online-teams h3 { font-size:13px; flex-direction:column; gap:1px; }.online-roster { grid-template-columns:1fr; gap:6px; }.online-fighter { min-height:56px; }.online-avatar { flex-basis:42px; width:42px; height:42px; }.online-fighter-info b { font-size:11px; }.online-join { flex-direction:column; } }

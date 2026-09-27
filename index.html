@@ -6,7 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <title>Арена Душ: Битва Миров</title>
 <meta content="#050816" name="theme-color"/>
-<meta content="Тактический автобатлер 5 на 5: драфт бойцов, Прайм-формы, три арены, игра вдвоём, четыре честных уровня компьютерного соперника и Elo-рейтинг за серии до 5." name="description"/>
+<meta content="Тактическая битва 5 на 5: драфт бойцов, Прайм-формы, три арены, поиск соперника и PvP-рейтинг, игра с другом, локальный режим и боты." name="description"/>
 <meta content="dark" name="color-scheme"/>
 <link href="css/tailwind.generated.css" rel="stylesheet"/>
 <link href="css/game.css" rel="stylesheet"/>
@@ -21,6 +21,7 @@
 <link href="css/r37-desktop-fit.css" rel="stylesheet"/>
 <link href="css/r41-tutorial.css" rel="stylesheet"/>
 <link href="css/r41-mobile-ux.css" rel="stylesheet"/>
+<link href="css/online.css" rel="stylesheet"/>
 </head>
 <body class="flex flex-col relative r23-ui r28-ui r29-ui r31-ui r32-ui r33-ui r34-ui r37-ui r41-ui r413-mobile-ux game-ui" data-reduced-motion="false" data-screen="menu" data-ui-theme="ember">
 <div aria-live="polite" class="r13-boot-splash" id="r13-boot-splash" role="status">
@@ -135,7 +136,7 @@
 <button class="menu-secondary-btn" onclick="openFeaturePreview('achievements')"><span data-ui-icon="trophy" data-icon-size="22"></span><span>Достижения</span><small id="hub-achievement-count">0/50</small></button>
 <button class="menu-secondary-btn" onclick="openRules(false)"><span data-ui-icon="rules" data-icon-size="22"></span><span>Правила</span><small>справка</small></button>
 <button class="menu-secondary-btn" onclick="openR41Tutorial(false)"><span data-ui-icon="target" data-icon-size="22"></span><span>Обучение</span><small>практика</small></button>
-<button class="menu-secondary-btn" onclick="openFutureUpdates()"><span data-ui-icon="future" data-icon-size="22"></span><span>Будущее</span><small>online</small></button>
+<button class="menu-secondary-btn" onclick="openFutureUpdates()"><span data-ui-icon="future" data-icon-size="22"></span><span>Будущее</span><small>новые режимы</small></button>
 <button class="menu-secondary-btn" onclick="openAudioSettings()"><span data-ui-icon="settings" data-icon-size="22"></span><span>Настройки</span><small>звук</small></button>
 </div>
 <div class="r16-hub-footer-actions r20-hub-footer-actions">
@@ -321,7 +322,7 @@
 <div><div class="modal-eyebrow">ВЫБЕРИТЕ РЕЖИМ</div><h2 id="game-mode-title">Как будем играть?</h2></div>
 <button aria-label="Закрыть" class="modal-close" onclick="closeGameModeSelect()"><span data-ui-icon="close" data-icon-size="18"></span></button>
 </div>
-<p class="r16-mode-intro">Офлайн-версия поддерживает игру вдвоём и четыре полноценных уровня компьютерного соперника. Сетевой PvP остаётся большим будущим этапом.</p>
+<p class="r16-mode-intro">Выберите локальную игру, компьютерного соперника или настоящий онлайн с поиском игроков и отдельным рейтингом.</p>
 <div class="r16-mode-grid">
 <article class="r16-mode-card is-ready">
 <div class="r16-mode-icon"><span data-ui-icon="users" data-icon-size="42"></span></div>
@@ -333,10 +334,10 @@
 <div class="r16-mode-card-body"><span class="r16-mode-badge ready">ГОТОВО</span><h3>Против компьютера</h3><p>Четыре честных уровня ИИ: Лёгкий, Средний, Сложный и Мастер — без подкрученного RNG, скрытых усилений и просмотра будущих карт.</p></div>
 <button class="r16-mode-action" onclick="openCpuPreview()">ВЫБРАТЬ СЛОЖНОСТЬ</button>
 </article>
-<article class="r16-mode-card">
+<article class="r16-mode-card is-ready">
 <div class="r16-mode-icon"><span data-ui-icon="online" data-icon-size="42"></span></div>
-<div class="r16-mode-card-body"><span class="r16-mode-badge future">БУДУЩЕЕ</span><h3>Онлайн PvP</h3><p>Матчи с игроками и друзьями VK, рейтинговые сезоны и турниры. Сейчас этот режим намеренно не имитируется.</p></div>
-<button class="r16-mode-action secondary" onclick="closeGameModeSelect(); openFutureUpdates()">ПЛАН ОБНОВЛЕНИЯ</button>
+<div class="r16-mode-card-body"><span class="r16-mode-badge ready">НОВЫЙ РЕЖИМ</span><h3>Онлайн PvP</h3><p>Найдите случайного соперника, сыграйте рейтинговую серию до пяти побед или пригласите друга по коду.</p></div>
+<button class="r16-mode-action" onclick="openOnlineArena()">ИГРАТЬ ОНЛАЙН</button>
 </article>
 </div>
 <div class="modal-actions"><button class="modal-secondary" onclick="closeGameModeSelect()">Назад</button></div>
@@ -363,14 +364,14 @@
 <div aria-labelledby="future-updates-title" aria-modal="true" class="modal-layer hidden" id="future-updates-modal" role="dialog">
 <div class="modal-card r16-future-card">
 <div class="modal-head">
-<div><div class="modal-eyebrow">БУДУЩИЕ ОБНОВЛЕНИЯ</div><h2 id="future-updates-title">Арена станет сетевой</h2></div>
+<div><div class="modal-eyebrow">БУДУЩИЕ ОБНОВЛЕНИЯ</div><h2 id="future-updates-title">Развитие онлайн-арены</h2></div>
 <button aria-label="Закрыть" class="modal-close" onclick="closeFutureUpdates()"><span data-ui-icon="close" data-icon-size="18"></span></button>
 </div>
-<div class="r16-future-hero"><span data-ui-icon="online" data-icon-size="42"></span><div><b>ONLINE PvP</b><p>Сначала доводим офлайн-версию до максимума, затем добавляем настоящий серверный мультиплеер.</p></div></div>
+<div class="r16-future-hero"><span data-ui-icon="online" data-icon-size="42"></span><div><b>ONLINE PvP</b><p>Поиск соперника, рейтинг и игра с другом доступны после подключения сервера. Далее — сезоны и турниры.</p></div></div>
 <div class="r16-future-list">
-<article><b>01</b><div><h3>Матчи против игроков</h3><p>Синхронный пошаговый драфт и серия боёв на разных устройствах.</p></div></article>
-<article><b>02</b><div><h3>Игра с друзьями VK</h3><p>Приватные комнаты и приглашения через социальные возможности VK.</p></div></article>
-<article><b>03</b><div><h3>Рейтинговые сезоны</h3><p>Отдельный онлайн-рейтинг, который нельзя фармить на ботах.</p></div></article>
+<article><b>01</b><div><h3>Рейтинговые сезоны</h3><p>Сезонные таблицы и награды за сезон, отдельно от текущего PvP-рейтинга.</p></div></article>
+<article><b>02</b><div><h3>Приглашения через VK</h3><p>Отправка приглашения другу одним нажатием прямо из игры.</p></div></article>
+<article><b>03</b><div><h3>Зрители</h3><p>Просмотр открытых матчей без возможности делать ходы.</p></div></article>
 <article><b>04</b><div><h3>Турниры и таблицы</h3><p>Сезонные соревнования, таблицы лидеров и история результатов.</p></div></article>
 <article><b>05</b><div><h3>Эксклюзивная косметика</h3><p>Награды за онлайн-сезоны без усиления силы персонажей.</p></div></article>
 </div>
@@ -653,5 +654,5 @@
 
 
 
-<script src="js/icon_system.js"></script><script src="js/ui_shell.js"></script><script src="js/layout_engine.js"></script><script src="js/performance_engine.js"></script><script src="js/game.js"></script><script src="r25-canon-model.js"></script><script src="js/battle_explainer.js"></script><script src="js/presentation_engine.js"></script></body>
+<script src="js/icon_system.js"></script><script src="js/ui_shell.js"></script><script src="js/layout_engine.js"></script><script src="js/performance_engine.js"></script><script src="js/game.js"></script><script src="r25-canon-model.js"></script><script src="js/battle_explainer.js"></script><script src="js/presentation_engine.js"></script><script src="js/online_config.js"></script><script type="module" src="js/online_client.mjs"></script></body>
 </html>
