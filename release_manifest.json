@@ -1,1831 +1,889 @@
 {
-  "release": "R41.3",
-  "title": "Arena Dush: Bitva Mirov",
-  "platform": "VK Mini Apps / VK Games / Odnoklassniki",
-  "status": "R41.3 is a presentation-only mobile gameplay UX pass over R41.2. It fixes phone portrait/landscape playability for tutorial and ordinary Easy CPU matches without changing combat, draft rules, Easy AI, PRIME mechanics, arena rules, economy, progression, cloud or VK/OK integration.",
-  "base": "R40 final moderation build",
+  "release": "R81.1",
+  "builtAt": "2026-10-03T01:46:15.511441+00:00",
+  "title": "Арена Душ: Битва Миров",
+  "platform": [
+    "VK",
+    "Odnoklassniki"
+  ],
+  "base": "Published Bleach frontend + uploaded current online server",
   "roster": 75,
   "matrixRows": 33300,
-  "directedLookupKeys": 66600,
-  "arenas": 3,
+  "matrix": {
+    "schemaVersion": 17,
+    "matrixVersion": "R30.0.0",
+    "canonVersion": "2026-09-02",
+    "ratingRevision": "FINAL-2026-09-04",
+    "generatedAt": "2026-09-04",
+    "characterCount": 75,
+    "pairCount": 2775,
+    "formCombinationsPerPair": 4,
+    "arenaCount": 3,
+    "battleCount": 33300,
+    "directedLookupKeyCount": 66600,
+    "engineVersion": "R8.0.0",
+    "haxEngineVersion": "R6.0.0",
+    "fatigueEngineVersion": "R7.0.0",
+    "arenaEngineVersion": "R17.0.0",
+    "verificationEngineVersion": "R10.0.0",
+    "verificationRuleCount": 15,
+    "haxPairRuleCount": 21,
+    "verificationTouchedRows": 54,
+    "hardOverrideRows": 42,
+    "gapGuardRows": 287,
+    "equalizationRows": 87,
+    "explicitUpsetRows": 18,
+    "haxPairRows": 123,
+    "generationPolicy": "R30 deterministic full rebuild. Final Base/Prime rating is the fresh neutral baseline; arena/profile modifiers cannot overturn 6+ gaps without a curated hard counter/ability bypass. Dynamic fatigue remains runtime-resolved.",
+    "gapPolicy": "0-5 matchup-open; 6-11 hard-counter only; 12+ canonical hard-counter/ability-bypass only",
+    "comparisonToR29Cache": {
+      "rowsChanged": 33281,
+      "winnerChanged": 2257,
+      "winnerStateChanged": 8444,
+      "difficultyChanged": 10334,
+      "meanAbsoluteMarginDelta": 6.973103,
+      "maxAbsoluteMarginDelta": 73.722
+    },
+    "sha256": "985e4c6d7916708228fa2d07584b5f45137e911f845101fecf5b60109460d309",
+    "releasePackagingVersion": "R30.0.0",
+    "compactFormat": "tuple-v1",
+    "arenaIds": [
+      "ARENA_01",
+      "ARENA_02",
+      "ARENA_03"
+    ]
+  },
   "pinnedVkBridge": "2.15.12",
-  "buildDate": "2026-09-17",
-  "gameModes": {
-    "localTwoPlayer": "ready",
-    "computer": "ready-4-difficulties",
-    "online": "future"
-  },
-  "arenaEngine": {
-    "version": "R17.0.0",
-    "layers": [
-      "terrain",
-      "homeField"
-    ],
-    "homeFieldMaxSingleStatMultiplier": 1.015,
-    "combinedArenaStatClamp": [
-      0.94,
-      1.06
-    ],
-    "nativeFactions": {
-      "ARENA_01": "WARDEN",
-      "ARENA_02": "VOIDBORN",
-      "ARENA_03": "ASTRAL"
-    }
-  },
-  "cpuEngine": {
-    "version": "R31.0.0",
-    "playerSlot": 2,
-    "difficulties": [
-      "easy",
-      "medium",
-      "hard",
-      "master"
-    ],
-    "fairness": {
-      "hiddenFutureDraftAccess": false,
-      "hiddenOpponentChoiceAccess": false,
-      "statBonuses": false,
-      "rngManipulation": false,
-      "sameCombatRules": true
-    },
-    "decisionStages": [
-      "draft",
-      "prime-allocation",
-      "battle-placement",
-      "battle-counterpick"
-    ],
-    "masterPolicy": "exact-current-combat-engine + minimax over public living roster",
-    "visualPacing": {
-      "sameAcrossDifficulties": true,
-      "thinkMs": "850-1150",
-      "draftPreviewMs": "480-650",
-      "primeStudyMs": "900-1250",
-      "primeRevealPerTargetMs": "480-650",
-      "primeFinalHoldMs": "700-900",
-      "battlePreviewMs": "520-700",
-      "cpuAutoFightWaitMs": "800-1050",
-      "difficultyAffects": "decision quality only"
-    },
-    "primePresentation": "roll visible -> study pause -> sequential Prime reveals -> final hold",
-    "battleStartPolicy": {
-      "cpuPlacedLast": "CPU auto-starts battle after visible button-ready delay",
-      "humanPlacedLast": "human must press fight",
-      "localTwoPlayer": "manual fight button only"
-    }
-  },
-  "ratingEngine": {
-    "version": "R19.0.0",
-    "type": "Elo",
-    "initialPlayerRating": 800,
-    "kFactor": 32,
-    "botRatings": {
-      "easy": 800,
-      "medium": 1100,
-      "hard": 1400,
-      "master": 1700
-    },
-    "ratingChangesOn": "completed-first-to-five-series-only",
-    "localTwoPlayerAffectsRating": false,
-    "storedStats": [
-      "rating",
-      "peakRating",
-      "seriesPlayed",
-      "seriesWins",
-      "seriesLosses",
-      "winStreak",
-      "bestWinStreak",
-      "wins/losses by CPU difficulty",
-      "last 20 series results"
-    ],
-    "antiFarmExamples": {
-      "player850VsEasy": {
-        "win": 14,
-        "loss": -18
-      },
-      "player1400VsEasy": {
-        "win": 1,
-        "loss": -31
-      },
-      "player1700VsEasy": {
-        "win": 0,
-        "loss": -32
-      }
-    }
-  },
-  "scope": [
-    "Final moderation regression only: do not add new gameplay features or rebalance fighters.",
-    "Revalidate the exact rejection fixes: cross-client cloud progress sync, one-screen desktop layout, and mandatory interactive first-run tutorial.",
-    "Revalidate R39 12+ dominant-gap fatigue guard and all curated special matchup exceptions.",
-    "Revalidate legacy draft, CPU pacing, rating/economy/shop/progression, assets, lifecycle, advertising parameters and package integrity.",
-    "Preserve all gameplay/UI/platform files unless a reproducible blocker is found; R40 changes release metadata only when regression is clean.",
-    "A real same-account smoke inside VK and Odnoklassniki production containers remains a publication gate and is not simulated as a PASS."
+  "runtimeNode": "24+",
+  "workerName": "soul-arena-online",
+  "protocolVersion": 2,
+  "sameStorageNamespaces": true,
+  "sameRuleset": true,
+  "gameModes": [
+    "local two player",
+    "CPU",
+    "ranked matchmaking",
+    "private online rooms"
   ],
-  "combatDataChanged": "policy-only: final_combat_policy.js; roster/profiles/hax/fatigue/arenas/matrix unchanged",
-  "platformHardening": {
-    "bridgeSupportCheck": "supportsAsync",
-    "vkPublicDomain": "vk.ru",
-    "canvasLifecyclePauseResume": true,
-    "pointerInputForDecorativeCanvas": true,
-    "audioEmptySrcResetFixed": true
+  "testStatus": {
+    "unitTestsPassed": 19,
+    "canonicalOutcomesChecked": 33300,
+    "localConcurrentPlayers": 400,
+    "localConcurrentRooms": 200,
+    "loadScope": "Local workerd: WebSocket connections and one accepted move per room, not 200 complete series",
+    "liveCloudflareTested": false,
+    "liveVKAdsAndCloudSavesTested": false
   },
-  "releaseQA": {
-    "syntax": {
-      "javascript": "pass",
-      "checkedFiles": 25
+  "files": [
+    {
+      "path": "README.txt",
+      "bytes": 4750,
+      "sha256": "43d64e97785d197c389a63a3b996ffd8fc3c610056b2e54d6fea5b4bacd5f599"
     },
-    "iconSystem": {
-      "version": "R27.0.0",
-      "definitions": 48,
-      "requiredMissing": 0,
-      "initialHydratedSlots": 64,
-      "initialUnhydratedSlots": 0,
-      "visibleLegacyResourceEmoji": 0,
-      "hudResourceComponents": {
-        "rating": 1,
-        "coins": 1,
-        "shards": 1
-      },
-      "hudResourceSvgPerComponent": 1,
-      "shopItemsRendered": 53,
-      "shopEmojiLeaves": 0,
-      "achievementCardsRendered": 50,
-      "achievementEmojiLeaves": 0,
-      "soundStateSvgSwap": "pass",
-      "externalIconDependencies": 0
+    {
+      "path": "audio/arena_01.mp3",
+      "bytes": 3537621,
+      "sha256": "4e5e0e0699505f70b47738ed78bb1fe867b070e4293aa7f706446c51e213491a"
     },
-    "browserLogicSmoke": {
-      "status": "pass",
-      "profiles": [
-        "1440x900",
-        "390x844",
-        "320x568"
-      ],
-      "flows": [
-        "hub -> mode selection -> local initiative -> draft",
-        "hub -> CPU selection -> CPU initiative"
-      ],
-      "pageErrors": 0,
-      "horizontalOverflowProfiles": 0,
-      "matrixLoadedRows": 33300,
-      "r30PolicyValidate": "pass",
-      "testHarness": "Headless Chromium with local JS/CSS inlined and VK Bridge stub; real VK container behavior is not claimed.",
-      "scopeNote": "Historical pre-R34 runtime baseline retained from the unchanged core flow; R34-specific browser rerun is reported separately."
+    {
+      "path": "audio/arena_02.mp3",
+      "bytes": 4219730,
+      "sha256": "3a4f606d7762bf4458a3c56cb2c9c983f83cd0e333449528bfbd44b6ba68c4f4"
     },
-    "responsive": {
-      "profiles": [
-        "1440x900",
-        "390x844",
-        "320x568",
-        "844x390",
-        "768x1024"
-      ],
-      "horizontalOverflowProfiles": 0,
-      "nestedMenuHorizontalOverflowProfiles": 0,
-      "targetsUnder40pxInR28Audit": 0,
-      "visibleTextUnder11pxInTextAudit": 0,
-      "textOverflowFindings": 0,
-      "legacyHubRowsProfiles": 0
+    {
+      "path": "audio/arena_03.mp3",
+      "bytes": 4281170,
+      "sha256": "562ce662693e06bf01dca1056655b631af24829166f72f05963df6fe7bd3797f"
     },
-    "combatMatrix": {
-      "status": "pass",
-      "matrixVersion": "R30.0.0",
-      "ratingRevision": "FINAL-2026-09-04",
-      "rowsChecked": 33300,
-      "mismatches": 0,
-      "directedLookupKeys": 66600,
-      "sha256": "985e4c6d7916708228fa2d07584b5f45137e911f845101fecf5b60109460d309",
-      "gapGuardRows": 287,
-      "equalizationRows": 87,
-      "explicitUpsetRows": 18,
-      "unauthorizedLowerRatedWinsAtGap6Plus": 0,
-      "comparisonToR29Cache": {
-        "rowsChanged": 33281,
-        "winnerChanged": 2257,
-        "winnerStateChanged": 8444,
-        "difficultyChanged": 10334,
-        "meanAbsoluteMarginDelta": 6.973103,
-        "maxAbsoluteMarginDelta": 73.722
-      }
+    {
+      "path": "css/battle_r81.css",
+      "bytes": 19611,
+      "sha256": "a2a640f9c2aba979faafdded3bfb670e54185a97e7464a6f5551264db90e04c5"
     },
-    "draftSmoke": {
-      "runs": 250,
-      "cardsPerRun": 10,
-      "duplicateRuns": 0
+    {
+      "path": "css/game.css",
+      "bytes": 135175,
+      "sha256": "213a3d9c8eab87e0a0f18fa79d4f84e7641bbf328b2252cc2e693160fff020a9"
     },
-    "cpuDecisionSmoke": {
-      "difficulties": [
-        "easy",
-        "medium",
-        "hard",
-        "master"
-      ],
-      "firstDecisionPass": "4/4",
-      "hiddenInformationClean": "4/4"
+    {
+      "path": "css/icons.css",
+      "bytes": 6795,
+      "sha256": "289640d7e89293f266946e9014524256a7d04a89ba9d609e5fec57a09c74f4fe"
     },
-    "coreRegression": {
-      "r29UiPerformancePlatformPreserved": true,
-      "combatRuntimeChangedIntentionally": false,
-      "combatCacheRegenerated": false,
-      "draftWeightsChanged": false,
-      "economyChanged": false,
-      "progressionChanged": false,
-      "publicFighterIdsChanged": false,
-      "r31CpuPacingChangedIntentionally": true,
-      "r32UiCleanupChangedIntentionally": true,
-      "r31CpuPacingPreserved": true,
-      "r33TutorialChangedIntentionally": true,
-      "r33CombatRuntimeChangedIntentionally": false,
-      "r33CombatDataChanged": false,
-      "r34ExplainabilityChangedIntentionally": true,
-      "r34WinnerSelectionChanged": false,
-      "r34CombatDataChanged": false,
-      "r35FinalRegressionOnly": true,
-      "r35GameplayChangedIntentionally": false,
-      "r35CombatDataChanged": false,
-      "r35WinnerSelectionChanged": false,
-      "r35UiChangedIntentionally": false,
-      "r36CloudSyncPreserved": true,
-      "r37DesktopFitPreserved": true,
-      "r38TutorialChangedIntentionally": true,
-      "r38CombatRuntimeChangedIntentionally": false,
-      "r38CombatDataChanged": false,
-      "r38CpuLogicChanged": false,
-      "r38EconomyChanged": false,
-      "r38ProgressionChanged": false,
-      "r38DetailedRulesPreserved": true,
-      "r39CombatRuntimeChangedIntentionally": true,
-      "r39RosterRatingsChanged": false,
-      "r39FreshMatrixChanged": false,
-      "r39CloudSyncPreserved": true,
-      "r39DesktopFitPreserved": true,
-      "r39InteractiveTutorialPreserved": true,
-      "r40FinalRegressionOnly": true,
-      "r40GameplayChangedIntentionally": false,
-      "r40CloudSyncPreserved": true,
-      "r40DesktopFitPreserved": true,
-      "r40InteractiveTutorialPreserved": true,
-      "r40CombatGuardPreserved": true
+    {
+      "path": "css/online.css",
+      "bytes": 18202,
+      "sha256": "6e3329e90ce6a7b368ba361c812645c74f337a4578139c20f7b369ebc8cca425"
     },
-    "vkInspector": {
-      "tool": "VK Games Inspector Pro V20",
-      "exactZipStaticAudit": "pass-with-warnings",
-      "criticalErrors": 0,
-      "warnings": 7,
-      "passedChecks": 57,
-      "totalStaticChecks": 64,
-      "projectValidation": "pass",
-      "dependencyBlockers": {
-        "missingDirect": 0,
-        "missingHeuristic": 0,
-        "caseMismatch": 0,
-        "escapedRoot": 0,
-        "bareModules": 0,
-        "cycles": 0
-      },
-      "browserHostedRuntimeAudit": "not-run-for-inspector-runtime-phases",
-      "realVkContainerStillRequired": true,
-      "notes": [
-        "R35 introduces no gameplay/UI/platform code changes; only release metadata is updated after final regression.",
-        "Independent source audit confirms cancelAnimationFrame, document.visibilityState, audio.pause()/AudioContext.suspend(), VK lifecycle hooks and ad_format parameters.",
-        "The game itself passed a real Chromium in-memory smoke across desktop/mobile profiles; only V20 browser-hosted runtime/lifecycle phases are not claimed.",
-        "Final publication still requires a real VK container smoke-test."
-      ]
+    {
+      "path": "css/r28-layout.css",
+      "bytes": 40608,
+      "sha256": "b0af8822af65c3cc0c4941d9702461c5b2b195f7da00d75ff8f553757ea5fda3"
     },
-    "realVkContainerStillRequired": true,
-    "layoutSystem": {
-      "version": "R28.0.0",
-      "feature": "Typography & Responsive Layout Full Rebuild",
-      "bodyBaselinePx": 16,
-      "visibleTextAuditFloorPx": 11,
-      "pageHorizontalOverflowProfiles": 0,
-      "nestedMenuHorizontalOverflowProfiles": 0,
-      "visibleControlsBelow40px": 0,
-      "duplicateIds": 0,
-      "testedScreens": [
-        "hub",
-        "mode-selection",
-        "cpu-selection",
-        "rating",
-        "bestiary",
-        "achievements",
-        "shop",
-        "economy",
-        "audio",
-        "initiative",
-        "draft"
-      ],
-      "testedProfiles": [
-        "1440x900",
-        "390x844",
-        "320x568",
-        "844x390",
-        "768x1024"
-      ]
+    {
+      "path": "css/r29-performance.css",
+      "bytes": 4112,
+      "sha256": "fd0b3f28fe7d9d4cb23c7f86a144b9c0540bf9d341baef8907c0496e73ea8407"
     },
-    "performanceOptimization": {
-      "r28ComputedBackdropFilters": 41,
-      "r29ComputedBackdropFilters": 0,
-      "r28ParticleCount": 50,
-      "r29BalancedParticleCount": 12,
-      "portraitBytesBefore": 38088286,
-      "portraitBytesAfter": 12009437,
-      "portraitByteReductionPercent": 68.47,
-      "portraitPixelsBefore": 100287136,
-      "portraitPixelsAfter": 31867920,
-      "portraitDecodedPixelReductionPercent": 68.22,
-      "portraitDecodeValidation": "78/78 PNG assets decoded (75 fighters + 3 arenas)",
-      "portraitQuantizationAveragePsnrDb": 33.21,
-      "forcedReflowAnimationPathsRemoved": [
-        "screen transition",
-        "screen shake",
-        "spirit shockwave",
-        "per-mousemove 3D tilt rect read"
-      ],
-      "runtimeBackdropFilters": 0,
-      "catalogDomGrowthAfterWarmRepeatedCycles": 0
+    {
+      "path": "css/r32-ui.css",
+      "bytes": 1909,
+      "sha256": "00b81b2b218ac51c5b1022c402d56ac3230e98e6fc1b25d46b7a068feae6abad"
     },
-    "browserPerformance": {
-      "desktop1440x900": {
-        "idleAvgFrameMs": 16.67,
-        "idleP95Ms": 16.7,
-        "idleLongTasks": 0,
-        "stressP95Ms": 16.7,
-        "stressLongTasks": 1,
-        "stressMaxLongTaskMs": 57,
-        "horizontalOverflow": 0
-      },
-      "mobile390x844": {
-        "idleAvgFrameMs": 16.67,
-        "idleP95Ms": 16.7,
-        "idleLongTasks": 0,
-        "stressP95Ms": 16.7,
-        "stressLongTasks": 0,
-        "horizontalOverflow": 0
-      },
-      "note": "Headless Chromium diagnostics; frame cadence is diagnostic rather than a guarantee for every physical device."
+    {
+      "path": "css/r33-tutorial.css",
+      "bytes": 14367,
+      "sha256": "3d8bc5f0c3529f45474dbf9064f3aa6d982192c7eacd019eb3b025feb9555ae3"
     },
-    "cpuPacing": {
-      "productionStagesObserved": [
-        "thinking",
-        "preview",
-        "commit",
-        "idle"
-      ],
-      "pauseBlocksDecision": true,
-      "resumeCommitsExactlyOnce": true,
-      "vkViewHideBlocksDecision": true,
-      "vkViewRestoreResumesExactlyOnce": true,
-      "hardCacheObserved": {
-        "hits": 30,
-        "misses": 25,
-        "size": 25
-      },
-      "masterProductionCacheObserved": {
-        "hits": 85,
-        "misses": 171,
-        "size": 171
-      },
-      "hiddenInformationClean": "4/4"
+    {
+      "path": "css/r34-explanations.css",
+      "bytes": 4912,
+      "sha256": "53f8e18101833b138af8d024cba303df61d573fcdf0b0cac94aeb645197602b2"
     },
-    "fullMatchRegression": {
-      "easy": "pass (accelerated timing harness; 7 combats, hidden clean)",
-      "medium": "pass (accelerated timing harness; 5 combats, hidden clean)",
-      "hard": "pass (accelerated timing harness; 5 combats, hidden clean)",
-      "master": "pass with production R29 pacing (5 combats, hidden clean)",
-      "gameplayDecisionLogicChanged": true,
-      "note": "Historical R29 full-match pacing checks retained; R30 changed combat outcome evaluation intentionally. R30 fresh combat and UI/CPU-start smoke are revalidated separately above."
+    {
+      "path": "css/r37-desktop-fit.css",
+      "bytes": 12520,
+      "sha256": "03285cd91c6ae156b3157e28dbb3ca28ea0981ac8c5e212dfc35f8c6d85cc846"
     },
-    "lifecycle": {
-      "pagehidePause": true,
-      "pageshowResume": true,
-      "vkHidePause": true,
-      "vkRestoreResume": true,
-      "cpuBlockedWhilePlatformHidden": true,
-      "cpuResumedOnce": true
+    {
+      "path": "css/r41-mobile-ux.css",
+      "bytes": 30777,
+      "sha256": "9c27aad8957042996d887005d58a6196a00a944aae9f4cad5530cb22e62d7e5a"
     },
-    "finalRatings": {
-      "status": "pass",
-      "charactersChecked": 75,
-      "mismatches": 0,
-      "ratingRevision": "FINAL-2026-09-04"
+    {
+      "path": "css/r41-tutorial.css",
+      "bytes": 16368,
+      "sha256": "dcf0f72a3b2b796c08bc75ccd7e9ffbb4d1c960f3a226d37e9e228e5009214e3"
     },
-    "canonicalPolicyCases": {
-      "status": "pass",
-      "cases": [
-        "Nanao-style anti-divine reflect can defeat Lille-style divine X-Axis despite 40-point rating gap",
-        "Hachigen-style spatial barrier counter can defeat Baraggan-style Respira despite lower general rating",
-        "Uryu-style Antithesis can reverse Senjumaru-style outcome",
-        "Haschwalth-style Balance/Freund Schild counters Uryu-style Antithesis instead of losing by raw rating",
-        "Gerard-style Miracle does not count one Zaraki-style cut as an automatic kill",
-        "Hisagi-style Prime equalization can force attrition/stalemate pressure without becoming top-tier raw power",
-        "Yoruichi-style volatile Reiatsu vs Askin-style dosage remains dynamic rather than a permanent automatic counter"
-      ]
+    {
+      "path": "css/tailwind.generated.css",
+      "bytes": 54639,
+      "sha256": "502f4daf85053a24701f1bc80f3deffb71b69f6b695ff9f68655665d7b7fa0b7"
     },
-    "r31CpuPacing": {
-      "status": "pass",
-      "browserHarness": "Headless Chromium with local CSS/JS inlined and VK Bridge stub",
-      "pageErrors": 0,
-      "sameTimingAcrossDifficulties": {
-        "easy": {
-          "min": 850,
-          "max": 1150
-        },
-        "medium": {
-          "min": 850,
-          "max": 1150
-        },
-        "hard": {
-          "min": 850,
-          "max": 1150
-        },
-        "master": {
-          "min": 850,
-          "max": 1150
-        }
-      },
-      "draftObservedCommitMs": 1786,
-      "primeSequentialReveal": true,
-      "primeObservedEvents": [
-        {
-          "atMs": 15,
-          "primeCount": 0,
-          "text": "ИИ Средний определяет количество Козырей…",
-          "stage": "thinking"
-        },
-        {
-          "atMs": 1735,
-          "primeCount": 0,
-          "text": "Компьютер · Средний получил 4 Козыря и изучает команду…",
-          "stage": "prime-study"
-        },
-        {
-          "atMs": 2668,
-          "primeCount": 1,
-          "text": "Компьютер · Средний выбирает Прайм: Архитектор Реальности · 1/4",
-          "stage": "preview"
-        },
-        {
-          "atMs": 3252,
-          "primeCount": 2,
-          "text": "Компьютер · Средний выбирает Прайм: Громовая Повелительница · 2/4",
-          "stage": "preview"
-        },
-        {
-          "atMs": 3754,
-          "primeCount": 3,
-          "text": "Компьютер · Средний выбирает Прайм: Теневой Актер · 3/4",
-          "stage": "preview"
-        },
-        {
-          "atMs": 4339,
-          "primeCount": 4,
-          "text": "Компьютер · Средний выбирает Прайм: Владыка Огненного Клинка · 4/4",
-          "stage": "preview"
-        },
-        {
-          "atMs": 4837,
-          "primeCount": 4,
-          "text": "Компьютер · Средний распределил 4 Козыря",
-          "stage": "preview"
-        },
-        {
-          "atMs": 5596,
-          "primeCount": 4,
-          "text": "Игрок, нажмите для определения количества Козырей",
-          "stage": "idle"
-        }
-      ],
-      "cpuAutoFightWhenSecondPlacer": true,
-      "cpuAutoFightObservedMs": 2831,
-      "humanManualFightWhenSecondPlacer": true,
-      "localTwoPlayerManualFightPreserved": true,
-      "combatDataFilesUnchangedFromR30": true
+    {
+      "path": "css/ui.css",
+      "bytes": 3154,
+      "sha256": "1e9f3970af22d29a24578c539a354e5e76bd03121359687b95288263bcfd3b13"
     },
-    "r31BrowserSmoke": {
-      "status": "pass",
-      "profiles": [
-        "390x844",
-        "320x568"
-      ],
-      "flows": [
-        "prime",
-        "battle"
-      ],
-      "horizontalOverflowProfiles": 0,
-      "pageErrors": 0,
-      "note": "Headless Chromium with local JS/CSS inlined and VK Bridge stub; exact VK container behavior is not claimed."
+    {
+      "path": "data/arena_rules.js",
+      "bytes": 7417,
+      "sha256": "6937fe0c53992b23c5b54b55690a4399575baac4ede217a831064c3b2af295f4"
     },
-    "r31VkInspector": {
-      "tool": "VK Games Inspector Pro V20",
-      "exactZipStaticAudit": "pass-with-warnings",
-      "criticalErrors": 0,
-      "warnings": 6,
-      "passedChecks": 56,
-      "totalStaticChecks": 62,
-      "projectValidation": "pass",
-      "dependencyBlockers": {
-        "missingDirect": 0,
-        "missingHeuristic": 0,
-        "escapedRoot": 0,
-        "bareModules": 0,
-        "cycles": 0,
-        "developmentFiles": 0
-      },
-      "platformStatus": "warn",
-      "notes": [
-        "R31 has the same static Inspector result as R30: 0 critical errors / 6 warnings / 56 passes.",
-        "R31 only changes CPU presentation/turn pacing; platform integration, ads, storage and combat data are unchanged.",
-        "The six warnings remain guarded/heuristic findings already present in R30 (dynamic assets/lifecycle/security/CSP-style heuristics), not regressions introduced by R31.",
-        "A real VK container run remains required before publication."
-      ]
+    {
+      "path": "data/battles.js",
+      "bytes": 977515,
+      "sha256": "3b4ca475cd07747be262f297bb2618c29f45c035bc6b6aa77f4a2587ef848aea"
     },
-    "publicVkCheck": {
-      "checkedAt": "2026-09-04",
-      "bridgePinned": "2.15.12",
-      "note": "Official dev.vk.com mini-apps-rules page could not be retrieved in this environment for a current line-by-line audit. Public VKCOM sources still confirm VKWebAppInit and VKWebAppViewHide/VKWebAppViewRestore APIs; R32 does not alter Bridge/platform integration."
+    {
+      "path": "data/canon_bible.js",
+      "bytes": 98657,
+      "sha256": "8fce8fec2a42780228bded5bc741569829dc3c9e51acb3ad3cc33dd88286882a"
     },
-    "r32UiQA": {
-      "status": "pass",
-      "profiles": [
-        "1440x900",
-        "1100x700",
-        "844x390",
-        "768x1024",
-        "390x844",
-        "320x568"
-      ],
-      "pageErrors": 0,
-      "horizontalOverflowProfiles": 0,
-      "soundMenuOverlapProfiles": 0,
-      "headerControlsTitleOverlapProfiles": 0,
-      "headerControlHitTargetsAtLeast40px": true,
-      "supportButtons": 0,
-      "supportModalPresent": false,
-      "supportRuntimeHandlerPresent": false,
-      "hubFooterActions": 2,
-      "duplicateIds": 0,
-      "iconAudit": "pass"
+    {
+      "path": "data/canon_verification_rules.js",
+      "bytes": 9807,
+      "sha256": "f2a6d7a7a4ec4895f034cdee4114ac69443a69edb01610dcc7be706af35c2a9b"
     },
-    "r32Regression": {
-      "status": "pass",
-      "r31CpuThinkRangesPreserved": "850-1150 ms on easy/medium/hard/master",
-      "draftCommitDelayObservedMs": 1518,
-      "primeSequentialPresentation": "pass",
-      "cpuPlacedLastAutoFight": "pass",
-      "humanPlacedLastManualFight": "pass",
-      "localTwoPlayerManualFight": "pass",
-      "pageErrors": 0,
-      "combatAndCoreFilesUnchangedFromR31": true
+    {
+      "path": "data/characters.js",
+      "bytes": 73937,
+      "sha256": "f8f750115464750ad0bff6443061a6542edaa02d817f872882cd5e2e7f188720"
     },
-    "r32VkInspector": {
-      "tool": "VK Games Inspector Pro V20",
-      "exactZipStaticAudit": "pass-with-warnings",
-      "criticalErrors": 0,
-      "warnings": 6,
-      "passedChecks": 56,
-      "totalStaticChecks": 62,
-      "projectValidation": "pass",
-      "dependencyBlockers": {
-        "missingDirect": 0,
-        "missingHeuristic": 0,
-        "escapedRoot": 0,
-        "bareModules": 0,
-        "cycles": 0,
-        "developmentFiles": 0
-      },
-      "platformStatus": "warn",
-      "notes": [
-        "Static verdict matches the prior R31 baseline: 0 critical errors / 6 warnings / 56 passes.",
-        "R32 changes only header/support UI; combat, CPU, ads, storage and Bridge integration are preserved.",
-        "The remaining warnings are guarded/heuristic findings already present before R32, not new UI regressions.",
-        "A real VK container run remains required before publication."
-      ]
+    {
+      "path": "data/combat_profiles.js",
+      "bytes": 144842,
+      "sha256": "e3330d303e733ac92bd611f6e0cb4dab753481dc75b870cc39d55bfc22008203"
     },
-    "r33TutorialQA": {
-      "status": "pass",
-      "pages": 8,
-      "profiles": [
-        "1440x900",
-        "768x1024",
-        "390x844",
-        "320x568",
-        "844x390"
-      ],
-      "pageErrors": 0,
-      "horizontalOverflowProfiles": 0,
-      "allPagesNavigable": true,
-      "firstRunGate": "pass",
-      "manualRulesReopen": "pass",
-      "landscapeTransientOverflow": "fixed by disabling rules-card rise animation below 520px landscape",
-      "storageKey": "soulArenaRulesSeenR33"
+    {
+      "path": "data/draft_rules.js",
+      "bytes": 1124,
+      "sha256": "535c0a7352ce43703cae32958447f843cb3969826e818f6efd92b4a5124fe10a"
     },
-    "r33SemanticConsistency": {
-      "status": "pass",
-      "ratingGapBands": {
-        "closeMax": 5,
-        "hardCounterMax": 11,
-        "dominantMin": 12
-      },
-      "fatigueStatCount": 13,
-      "fatigueKeyMultipliersMatchRuntime": true,
-      "winnerDamageMarginThresholds": [
-        24,
-        10,
-        4,
-        0
-      ],
-      "winnerDamageThresholdsMatchRuntime": true,
-      "hiddenDuelLuckExplained": true,
-      "combatDataChanged": false
+    {
+      "path": "data/fatigue_rules.js",
+      "bytes": 3843,
+      "sha256": "cc40afc037db18e046a62f3c8c62e814a3090a8bcbf38b0b11248a89cf4a6761"
     },
-    "r33Regression": {
-      "status": "pass",
-      "r31CpuPacingPreserved": true,
-      "sameAiThinkRangeAllDifficultiesMs": [
-        850,
-        1150
-      ],
-      "cpuLastPlacementAutoFight": "pass",
-      "humanLastPlacementManualFight": "pass",
-      "localTwoPlayerManualFight": "pass",
-      "r32UiRegression": "pass",
-      "uiProfiles": [
-        "1440x900",
-        "1100x700",
-        "844x390",
-        "768x1024",
-        "390x844",
-        "320x568"
-      ],
-      "pageErrors": 0,
-      "supportRemoved": true,
-      "footerActions": 2,
-      "combatDataAndImagesUnchangedFromR32": true
+    {
+      "path": "data/final_combat_policy.js",
+      "bytes": 2190,
+      "sha256": "9f131244a9c9f31643ec9caaed6cb1166d0256c4b751d50460cc99673ff30f50"
     },
-    "r34StaticQA": {
-      "status": "pass",
-      "javascriptSyntaxFiles": 24,
-      "htmlDuplicateIds": 0,
-      "cssParseErrors": 0,
-      "tutorialPages": 9,
-      "disputedExamples": 8,
-      "characterExamplesChecked": 14,
-      "explanationUnitCases": [
-        "special counter",
-        "accumulated damage",
-        "kill condition",
-        "mutual attrition",
-        "initiative"
-      ],
-      "presentationIntegration": "pass",
-      "explainerInputMutation": "none (deep-frozen test contexts)",
-      "explainerWinnerSelectionApiReferences": 0,
-      "r34MinimumExplicitFontPx": 11,
-      "examplesButtonMinHeightPx": 40,
-      "examplesNavigation": "battle details closes before rules page 9 opens",
-      "combatDataExactFromR33": true,
-      "imagesExactFromR33": true,
-      "audioExactFromR33": true,
-      "changedFilesFromR33": [
-        "index.html",
-        "css/r34-explanations.css",
-        "js/battle_explainer.js",
-        "js/game.js",
-        "js/presentation_engine.js",
-        "release_manifest.json"
-      ]
+    {
+      "path": "data/hax_rules.js",
+      "bytes": 38223,
+      "sha256": "2137f15a3f30d304cbb3d05e6612116b9bcb122c1148b8a809e9ee05fb190ab8"
     },
-    "r34Regression": {
-      "status": "pass-static-and-unit",
-      "combatMathChanged": false,
-      "combatMatrixRegenerated": false,
-      "ratingsChanged": false,
-      "haxRulesChanged": false,
-      "fatigueRulesChanged": false,
-      "arenaRulesChanged": false,
-      "draftCpuEconomyProgressDataChanged": false,
-      "r31CpuTimingCodeChanged": false,
-      "r31AutoFightCodeChanged": false,
-      "r32SupportRemovalPreserved": true,
-      "r33TutorialPreservedAndExtended": true,
-      "firstRunStorageKey": "soulArenaRulesSeenR34"
+    {
+      "path": "data/visual_profiles.js",
+      "bytes": 48497,
+      "sha256": "981167555e13265d26f8f94af09c6b2f4fbf6f493c3ab0925cf590d47c1eab73"
     },
-    "r34BrowserRuntime": {
-      "status": "blocked-by-managed-browser-policy",
-      "chromium": "144.0.7559.96",
-      "managedPolicyEvidence": {
-        "URLBlocklist": [
-          "*"
-        ]
-      },
-      "r34RuntimeSmokeClaimed": false,
-      "reason": "The centrally managed Chromium profile blocks every URL, including file:// and localhost. The policy was not bypassed or modified.",
-      "priorR33Baseline": "R33 had already passed tutorial/browser responsive smoke on 1440x900, 768x1024, 390x844, 320x568 and 844x390 before this policy blocked the current run.",
-      "realVkContainerStillRequired": true
+    {
+      "path": "images/arena_01.png",
+      "bytes": 497104,
+      "sha256": "175e1d78001b9cb78c1e1345795083169f5b08fae8b1f80043870a6874146f22"
     },
-    "r34VkInspector": {
-      "tool": "VK Games Inspector Pro V20",
-      "fullBrowserHostedAudit": "not-run-environment-blocked",
-      "fullVerdictClaimed": false,
-      "exactSourceAnalyzers": {
-        "analyzeVKBridge": {
-          "status": "pass",
-          "scripts": 25,
-          "projectJsAnalyzed": 24,
-          "bridgeScript": "https://unpkg.com/@vkontakte/vk-bridge@2.15.12/dist/browser.min.js",
-          "bridgeAliases": [
-            "bridge",
-            "vkBridge"
-          ],
-          "bridgeCalls": 7,
-          "dynamicCalls": 0,
-          "initCalls": 1,
-          "sendPromiseCount": 0,
-          "supportsDeprecatedCount": 0,
-          "supportsAsyncCount": 1,
-          "subscribeCount": 1,
-          "initBeforeGlobalBridge": false
-        },
-        "deepReleaseNearbyParam": {
-          "status": "pass",
-          "nativeShow": {
-            "total": 2,
-            "missingAdFormat": 0
-          },
-          "nativeCheck": {
-            "total": 2,
-            "missingAdFormat": 0
-          },
-          "storageSet": {
-            "total": 0,
-            "missingValue": 0
-          }
-        }
-      },
-      "platformIntegrationChangedByR34": false,
-      "note": "Exact pure/static V20 analyzer functions were executed directly from the inspector source. The complete inspector UI/runtime pipeline requires a browser and is not falsely reported as PASS."
+    {
+      "path": "images/arena_02.png",
+      "bytes": 330945,
+      "sha256": "3c462046d4a0d042df21cb4d680bc9d7383b5c48764914a20045a7df8d6ad4f5"
     },
-    "r35FinalRegression": {
-      "status": "pass-with-environment-limitation",
-      "independentRuntimeHarness": {
-        "checksPassed": 40,
-        "checksTotal": 40,
-        "errors": 0,
-        "draftRandomRuns": 1000,
-        "draftDuplicateRuns": 0,
-        "freshRuntimeCasesResolved": 33300,
-        "matrixVsRuntimeRowsChecked": 33300,
-        "matrixVsRuntimeMismatches": 0,
-        "unauthorizedLowerRatedFreshWinsAtGap6Plus": 0,
-        "namedMatchupsChecked": [
-          "Nanao/Lille",
-          "Hachigen/Barragan",
-          "Uryu/Senjumaru",
-          "Uryu/Haschwalth",
-          "Zaraki/Gerard",
-          "Hisagi equalization path"
-        ],
-        "battleExplainerPurity": "pass"
-      },
-      "staticReleaseAudit": {
-        "checksPassed": 32,
-        "checksTotal": 32,
-        "errors": 0,
-        "warnings": 0,
-        "javascriptFilesSyntaxChecked": 24,
-        "pngAssetsDecoded": 78,
-        "fighterImages": 75,
-        "arenaImages": 3,
-        "tutorialPages": 9,
-        "disputedExamples": 8,
-        "duplicateIds": 0,
-        "localDependencyMissing": 0,
-        "r31PrimeSequenceTiming": "pass",
-        "r31CpuAutoFightHumanGuard": "pass",
-        "seriesFirstToFivePolicy": "pass",
-        "cpuOnlyRatingAndCoinRewardPolicy": "pass",
-        "nativeAdsAdFormat": "pass",
-        "browserAndVkLifecycleMarkers": "pass",
-        "audioPauseSuspendMarkers": "pass"
-      },
-      "vkInspectorV20": {
-        "execution": "exact V20 static audit logic executed against release ZIP in a Node/MiniDOM harness",
-        "criticalErrors": 0,
-        "warnings": 7,
-        "passedChecks": 57,
-        "totalChecks": 64,
-        "missingDirectDependencies": 0,
-        "missingHeuristicDependencies": 0,
-        "caseMismatches": 0,
-        "escapedRootPaths": 0,
-        "bareImports": 0,
-        "cycles": 0,
-        "warningNotes": [
-          "dynamic images/audio are reported as statically unused by the inspector heuristic",
-          "the inspector heuristic misses existing cancelAnimationFrame/visibilityState/audio pause+suspend markers that the independent static audit confirms",
-          "innerHTML/CSP/external pinned VK Bridge are heuristic/manual-review warnings rather than critical failures"
-        ]
-      },
-      "managedChromium": {
-        "directLocalUrlNavigation": "blocked-by-managed-URLBlocklist",
-        "inMemorySetContentSmoke": "pass",
-        "policyBypassAttempted": false,
-        "realVkContainerStillRequired": true
-      },
-      "browserSmoke": {
-        "status": "pass",
-        "engine": "system Chromium via Playwright using page.set_content on about:blank",
-        "source": "exact R35 local HTML with exact local JS/CSS inlined; VK Bridge replaced only in the test harness by a deterministic stub",
-        "profiles": [
-          "1440x900",
-          "390x844",
-          "320x568",
-          "844x390"
-        ],
-        "checksPassed": 31,
-        "checksTotal": 31,
-        "pageErrors": 0,
-        "consoleErrors": 0,
-        "horizontalOverflowProfiles": 0,
-        "minimumVisibleTextPx": 11,
-        "tutorialPagesWalked": 9,
-        "tutorialExamplesVisible": 8,
-        "localModeInitiativeDraft": "pass",
-        "cpuTurnObserved": "pass",
-        "cpuDraftObservedDelayMs": 1627.3,
-        "cpuNotInstant": "pass",
-        "vkInitObservedThroughStub": "pass",
-        "binaryAssetNote": "images/audio are independently decoded/header-validated; binary subresources are not claimed as loaded through the managed URL policy in the in-memory browser harness"
-      }
+    {
+      "path": "images/arena_03.png",
+      "bytes": 473407,
+      "sha256": "d239c56d50804791046ff9b3591fd681b9e2c064b57078d1033e11a1cc09f749"
     },
-    "r35BrowserSmoke": {
-      "status": "pass",
-      "engine": "system Chromium via Playwright using page.set_content on about:blank",
-      "source": "exact R35 local HTML with exact local JS/CSS inlined; VK Bridge replaced only in the test harness by a deterministic stub",
-      "profiles": [
-        "1440x900",
-        "390x844",
-        "320x568",
-        "844x390"
-      ],
-      "checksPassed": 31,
-      "checksTotal": 31,
-      "pageErrors": 0,
-      "consoleErrors": 0,
-      "horizontalOverflowProfiles": 0,
-      "minimumVisibleTextPx": 11,
-      "tutorialPagesWalked": 9,
-      "tutorialExamplesVisible": 8,
-      "localModeInitiativeDraft": "pass",
-      "cpuTurnObserved": "pass",
-      "cpuDraftObservedDelayMs": 1627.3,
-      "cpuNotInstant": "pass",
-      "vkInitObservedThroughStub": "pass",
-      "binaryAssetNote": "images/audio are independently decoded/header-validated; binary subresources are not claimed as loaded through the managed URL policy in the in-memory browser harness"
+    {
+      "path": "images/fighter_001.png",
+      "bytes": 128022,
+      "sha256": "a31cf9b63a6911e2d1c23ece9755e123a19e24cf4b08cef029eb4186775b9071"
     },
-    "r36CloudSync": {
-      "exactInputZipSha256": "3ebe5daf684229d1cfda44395b39c0101275cd057fc3911aa50a40834f719360",
-      "baselineFilesUnchanged": 114,
-      "intentionalChanges": [
-        "index.html",
-        "js/game.js",
-        "release_manifest.json"
-      ],
-      "addedFiles": [
-        "js/cloud_sync.js"
-      ],
-      "javascriptSyntax": "25/25 pass",
-      "cloudEngineUnitTest": "pass",
-      "utf8ChunkRoundTrip": "pass",
-      "largeSyntheticProfile": "10497 bytes / 4 chunks",
-      "chunkByteLimit": "pass <= 2800 bytes",
-      "checksumCorruptionGuard": "pass",
-      "vkAdapterMock": "pass",
-      "okAdapterMock": "pass",
-      "crossClientSharedStorageMock": "pass",
-      "ratingEngineValidation": "pass",
-      "economyEngineValidation": "pass",
-      "shopEngineValidation": "pass",
-      "progressEngineValidation": "pass",
-      "combatDataChanged": false,
-      "realPlatformCrossDeviceTestRequired": true,
-      "note": "A real same-account Web <-> mobile platform smoke remains mandatory before resubmission; mocks cannot prove platform account/session configuration."
+    {
+      "path": "images/fighter_002.png",
+      "bytes": 164659,
+      "sha256": "4975b36c2dde0e5a52bc0972d604b498fd1395c8d4023147ccce6c959365a561"
     },
-    "r37DesktopFitPreserved": {
-      "status": "pass",
-      "cssSha256": "03285cd91c6ae156b3157e28dbb3ca28ea0981ac8c5e212dfc35f8c6d85cc846",
-      "desktopProfiles": [
-        "1920x1080",
-        "1600x900",
-        "1536x864",
-        "1440x900",
-        "1366x768",
-        "1280x720",
-        "1024x768"
-      ],
-      "pageVerticalOverflowProfiles": 0,
-      "pageHorizontalOverflowProfiles": 0,
-      "note": "Exact CSS extracted from the previously Chromium-validated R37 inline build; current R38 menu rechecked in Chromium at all listed profiles."
+    {
+      "path": "images/fighter_003.png",
+      "bytes": 193772,
+      "sha256": "8a1bff1e96482e14233972ddc7cdea6d9569ffd0cfb7a1a4c603861660f08e70"
     },
-    "r38InteractiveTutorial": {
-      "status": "pass",
-      "steps": 6,
-      "actions": [
-        "draft keep",
-        "activate Prime",
-        "choose order",
-        "choose arena",
-        "run duel",
-        "finish and launch match"
-      ],
-      "firstCpuMatchGate": "pass",
-      "firstLocalMatchGate": "pass",
-      "mandatoryCloseButtonHidden": "pass",
-      "escapeCannotSkip": "pass",
-      "wrongDraftActionDoesNotAdvance": "pass",
-      "completionPersistsLocally": "pass",
-      "completionIncludedInCloudPayload": "pass",
-      "cloudApplyRestoresCompletion": "pass",
-      "completedTutorialDoesNotRepeat": "pass",
-      "manualReplay": "pass",
-      "detailedRulesRemainOptional": true,
-      "detailedRulesPages": 9,
-      "tutorialViewportProfiles": [
-        "1280x720",
-        "1024x768",
-        "390x844",
-        "844x390",
-        "320x568"
-      ],
-      "tutorialViewportOverflowFindings": 0,
-      "browserRuntimeExceptions": 0,
-      "harness": "Headless Chromium via DevTools protocol with exact local JS/CSS inlined, localStorage shim and deterministic VK Bridge storage stub. Real VK/OK container behavior is not claimed here."
+    {
+      "path": "images/fighter_004.png",
+      "bytes": 129564,
+      "sha256": "9f102d87fb11f1e6bd191d38af960184237c3dd7a249524ec754dec8f44d3c77"
     },
-    "r39": {
-      "status": "pass",
-      "policyVersion": "R39.0.0",
-      "knownCase": {
-        "fighterA": "fighter_053 Prime 78 / FRESH",
-        "fighterB": "fighter_009 Base 90 / WOUNDED",
-        "expectedWinnerId": 9,
-        "actualWinnerId": 9,
-        "ratingGap": 12,
-        "fatigueGapGuardApplied": true,
-        "result": "pass"
-      },
-      "freshMatrixRegression": {
-        "rowsChecked": 33300,
-        "mismatches": 0,
-        "winnerMismatches": 0,
-        "winnerStateMismatches": 0,
-        "difficultyMismatches": 0,
-        "marginMismatches": 0,
-        "freshMatrixRegenerated": false
-      },
-      "woundedDominantGapSweep": {
-        "casesChecked": 20688,
-        "unauthorizedLowerRatedWins": 0,
-        "explicitAllowedUpsets": 6
-      },
-      "allLowerStatesProtectedSweep": {
-        "casesChecked": 82752,
-        "unauthorizedLowerRatedWins": 0,
-        "explicitAllowedUpsets": 18
-      },
-      "dynamicSevereFatiguePreserved": {
-        "exhaustedDominantUpsets": 3366,
-        "nearDeathDominantUpsets": 12645,
-        "note": "EXHAUSTED and NEAR_DEATH remain dynamic by design; R39 only protects higher-rated FRESH/WOUNDED entries at 12+ gap absent explicit pair exceptions."
-      },
-      "specialMatchupsPreserved": [
-        "anti-divine reflection",
-        "spatial decay counter",
-        "event reversal",
-        "Balance counter",
-        "Miracle recovery",
-        "forced equalization/stalemate"
-      ],
-      "combatDataPreservation": {
-        "rosterRatingsChanged": false,
-        "combatProfilesChanged": false,
-        "fatigueMultipliersChanged": false,
-        "haxDataChanged": false,
-        "arenaDataChanged": false,
-        "freshBattleMatrixFileChanged": false
-      },
-      "finalCombatRegressionRerun": "pass",
-      "fullEngineVmSmoke": "pass",
-      "baselineR38ZipSha256": "4f92a567082a21eb0788d2399fe4b96f9bc3e7281bb9a68de67965b37f4aa654",
-      "fileDiffAgainstR38": {
-        "filesBefore": 119,
-        "filesAfter": 119,
-        "added": [],
-        "removed": [],
-        "changed": [
-          "data/final_combat_policy.js",
-          "js/battle_explainer.js",
-          "js/game.js",
-          "release_manifest.json"
-        ]
-      },
-      "changedFileSha256": {
-        "data/final_combat_policy.js": "9f131244a9c9f31643ec9caaed6cb1166d0256c4b751d50460cc99673ff30f50",
-        "js/battle_explainer.js": "5c091d168af304287e36a897a710ea15bd1b94b2f1127e0aefaf6c9af67060da",
-        "js/game.js": "0def3dbebbe0b5986d52309e4a6fc3444148588cd8f3d8c570fe52182c2381d8"
-      }
+    {
+      "path": "images/fighter_005.png",
+      "bytes": 135097,
+      "sha256": "071c1561c0760d60844781b28ca46221ac437ee8cb270061b187148c0db15f95"
     },
-    "r40ModerationRegression": {
-      "status": "pass-with-real-platform-container-gate",
-      "sourceZip": "Arena_Dush_R39_COMBAT_GUARD.zip",
-      "sourceZipSha256": "5ecdd3f1d3e14e12b45aa2e2f26f9cdbdd54524a25f1c90fe1f4638650f31d4a",
-      "gameplayFilesChangedInR40": false,
-      "syntax": {
-        "javascriptFiles": 25,
-        "status": "pass"
-      },
-      "packageStatic": {
-        "htmlIds": 180,
-        "duplicateIds": 0,
-        "missingLocalReferences": 0,
-        "pngAssets": 78,
-        "pngDecodeErrors": 0,
-        "fighterPng": 75,
-        "arenaPng": 3,
-        "mp3Assets": 3,
-        "audioProbe": "pass"
-      },
-      "draft": {
-        "runs": 1000,
-        "cardsPerRun": 10,
-        "duplicateRuns": 0,
-        "badLengthRuns": 0
-      },
-      "cpu": {
-        "difficulties": [
-          "easy",
-          "medium",
-          "hard",
-          "master"
-        ],
-        "thinkDelayMidpointMs": 1000,
-        "r31RangePreserved": "850-1150",
-        "decisionSmoke": "4/4 pass"
-      },
-      "combat": {
-        "freshMatrixRows": 33300,
-        "freshMatrixMismatches": 0,
-        "dominantGapWoundedCases": 20688,
-        "unauthorizedDominantGapWoundedUpsets": 0,
-        "specialAllowedWoundedUpsets": 6,
-        "exhaustedDominantGapUpsetsPreserved": 3366,
-        "nearDeathDominantGapUpsetsPreserved": 12645,
-        "known78FreshVs90WoundedWinnerId": 9,
-        "knownCaseR39GuardApplied": true,
-        "canonicalPairs": {
-          "nanao_lille": 67,
-          "hachigen_baraggan": 74,
-          "uryu_senjumaru": 3,
-          "uryu_haschwalth": 39
-        },
-        "battlesJsSha256": "3b4ca475cd07747be262f297bb2618c29f45c035bc6b6aa77f4a2587ef848aea"
-      },
-      "cloudSync": {
-        "engineVersion": "R36.0.0",
-        "engineValidation": "pass",
-        "vkStorageAdapterRoundtrip": "pass",
-        "okStorageAdapterRoundtrip": "pass",
-        "largeUnicodePayloadChunks": 4,
-        "corruptionDetection": "byte-length-mismatch",
-        "tutorialCompletionCaptured": "pass",
-        "tutorialCompletionApplied": "pass",
-        "cloudSyncJsSha256": "328114b360fb0e00aac872f5cd36e0921a6a20ad977bcff348515c3320f098e5",
-        "realSameAccountCrossClientTestRequired": true
-      },
-      "desktopOneScreen": {
-        "r37CssPreservedByteForByte": true,
-        "r37CssSha256": "03285cd91c6ae156b3157e28dbb3ca28ea0981ac8c5e212dfc35f8c6d85cc846",
-        "verifiedBaselineProfiles": [
-          "1920x1080",
-          "1600x900",
-          "1536x864",
-          "1440x900",
-          "1366x768",
-          "1280x720",
-          "1024x768"
-        ],
-        "baselinePageVerticalOverflowProfiles": 0,
-        "currentHeadlessRerun": "environment-limited: installed Chromium did not terminate in current headless session; no browser PASS is fabricated",
-        "layoutCodeChangedAfterVerifiedR37": false
-      },
-      "interactiveTutorial": {
-        "version": "R38.0.0",
-        "steps": 6,
-        "mandatoryBeforeFirstCpuMatch": true,
-        "mandatoryBeforeFirstLocalMatch": true,
-        "completionInCloudPayload": true,
-        "detailedNinePageRulesPreserved": true,
-        "r38CssPreservedByteForByte": true,
-        "r38CssSha256": "1d6e9f540734d6b6230eabd1773c96f4a4563586a25ed3a5eee466b421a9dbed"
-      },
-      "platformStatic": {
-        "vkStorageGet": true,
-        "vkStorageSet": true,
-        "okStorageGet": true,
-        "okStorageSet": true,
-        "visibilityStateLifecycle": true,
-        "pagehideLifecycle": true,
-        "vkViewHideLifecycle": true,
-        "vkViewRestoreLifecycle": true,
-        "adFormatParametersPresent": true
-      },
-      "realPlatformPublicationGate": [
-        "VK: same account Web -> Mob.Web/Android/iOS progress roundtrip",
-        "OK: same account Web -> Mob.Web/Android/iOS progress roundtrip and required Storage API permission/access",
-        "VK desktop: open actual iframe at moderator-like viewport and confirm no document scroll in core match flow",
-        "VK/OK: first-run tutorial completion then second launch without forced repeat"
-      ]
+    {
+      "path": "images/fighter_006.png",
+      "bytes": 129898,
+      "sha256": "62d8600802b731d6ecba015d55fc6fe4bf1038443f2ee2a26e19bf47950d53ea"
     },
-    "r40InspectorNote": {
-      "freshV20BrowserPipelineRun": false,
-      "reason": "Inspector/browser runtime phase was not rerun in this environment; R40 relies on independent static/engine regression and does not claim a fresh V20 runtime PASS.",
-      "realContainerStillRequired": true
+    {
+      "path": "images/fighter_007.png",
+      "bytes": 191692,
+      "sha256": "85d6629218305374c5c305302d324f663660c5f1e12fd45553bb1a4594778b02"
+    },
+    {
+      "path": "images/fighter_008.png",
+      "bytes": 175160,
+      "sha256": "072137f8e6be87b6734922a00e0f3f33f77b89e7abcfe3f88a12d15c601a73fa"
+    },
+    {
+      "path": "images/fighter_009.png",
+      "bytes": 185347,
+      "sha256": "87a437f3554276d204d2a27227f75c0bf13c9f4f9bfde6f0c11bd0324cc5aa59"
+    },
+    {
+      "path": "images/fighter_010.png",
+      "bytes": 142116,
+      "sha256": "9755a49db651a3516ec7f854bf5350f60f337b831f27153ac575b1005d2a1155"
+    },
+    {
+      "path": "images/fighter_011.png",
+      "bytes": 154468,
+      "sha256": "26b869341ce349b709bea03a22c6d1fce23ce54b7c003c5991892a306347fc7c"
+    },
+    {
+      "path": "images/fighter_012.png",
+      "bytes": 88459,
+      "sha256": "2298391fc2953ad0c1fd588d8213133e78e808a86c72f7fea0d630435ada29ee"
+    },
+    {
+      "path": "images/fighter_013.png",
+      "bytes": 167907,
+      "sha256": "b9ca98a2a00354501ade5eaca11f9d2f147a6abf5b9dc422930d54c8d9da768e"
+    },
+    {
+      "path": "images/fighter_014.png",
+      "bytes": 133079,
+      "sha256": "a971a1a5b4e8f951aa3112020feadee95b2c56fe187eead178e2db872e7b8127"
+    },
+    {
+      "path": "images/fighter_015.png",
+      "bytes": 224366,
+      "sha256": "9b2dc04581a4d0b4e9496d2678b50582f3fd473208574067f263d15041d77eac"
+    },
+    {
+      "path": "images/fighter_016.png",
+      "bytes": 185232,
+      "sha256": "8814e7abd2215f8ac5fca368455c445b1c1029e81653b857c3386ba858520489"
+    },
+    {
+      "path": "images/fighter_017.png",
+      "bytes": 126548,
+      "sha256": "65e086683e4fa69cc3c145cdaf7d6ac394b14ad52535c6f04250b0ae209b5324"
+    },
+    {
+      "path": "images/fighter_018.png",
+      "bytes": 150057,
+      "sha256": "1b8217e72556231559fbf7aba1625f8b30d271741ba4a2f8d6801981809a51ac"
+    },
+    {
+      "path": "images/fighter_019.png",
+      "bytes": 183897,
+      "sha256": "bc8f7ea4f8a9d1a26847b98cf4e02f67c0c319bbd8856287e51575187a8e9e83"
+    },
+    {
+      "path": "images/fighter_020.png",
+      "bytes": 164624,
+      "sha256": "e509117ecd26cd0c8f83f4f12beb5903714d41537ab959f6646d4a28abcb0263"
+    },
+    {
+      "path": "images/fighter_021.png",
+      "bytes": 184830,
+      "sha256": "27159fcb002876f1eb51034952a2677fad605e87a3be3973bf348a2505a886b0"
+    },
+    {
+      "path": "images/fighter_022.png",
+      "bytes": 133846,
+      "sha256": "554e3887825a01de066e959739a95d508c638207a0d20922ac5e2fa6e15c451d"
+    },
+    {
+      "path": "images/fighter_023.png",
+      "bytes": 205822,
+      "sha256": "926291d74dc48836b2353a7e74368372ce9538783bdbdc81c531ed6ef1c4cfe9"
+    },
+    {
+      "path": "images/fighter_024.png",
+      "bytes": 125076,
+      "sha256": "96599035d4ca55af06461cfb12b640af0d8dc4a329543be43356268391e52dc8"
+    },
+    {
+      "path": "images/fighter_025.png",
+      "bytes": 164589,
+      "sha256": "5915d2ed237ec6c081e2b1ef3c0451713521df8a569785c21f33635c4d5ab4eb"
+    },
+    {
+      "path": "images/fighter_026.png",
+      "bytes": 155434,
+      "sha256": "25f72fb2bf1909a1da0bc0318dab5a35b06d3832150fb7df3b89b70d46558749"
+    },
+    {
+      "path": "images/fighter_027.png",
+      "bytes": 190761,
+      "sha256": "a6521dd287f8c58690940413eb450cfbd54705a2c7c53d5c2d0c1b717f495d33"
+    },
+    {
+      "path": "images/fighter_028.png",
+      "bytes": 213779,
+      "sha256": "d4793600ab1b7d99ee317295205e8feded7b549c13bc1cbf0ab0448e59a68018"
+    },
+    {
+      "path": "images/fighter_029.png",
+      "bytes": 115481,
+      "sha256": "24e16bb6c7e0e7d9d24f94fdda77136de1916c8cd7cb209a9468e0064986ddf1"
+    },
+    {
+      "path": "images/fighter_030.png",
+      "bytes": 122381,
+      "sha256": "4f36cd50aefc178cd7bea96969c27b9c33a24f14399c61285782a5fd726a7129"
+    },
+    {
+      "path": "images/fighter_031.png",
+      "bytes": 191139,
+      "sha256": "30c141f0395d00f381a65a5dd853732d3c79f973b39879d6cf357e6630f283d7"
+    },
+    {
+      "path": "images/fighter_032.png",
+      "bytes": 167383,
+      "sha256": "586b75a78e99dfb34eba2e1b27133cc9dff04294b4cce1559cb7f5f89a9acb32"
+    },
+    {
+      "path": "images/fighter_033.png",
+      "bytes": 100905,
+      "sha256": "5db628629aa2669980f080787fa142dc7dde3dd20300edcf64dc7a3c5ad5dca5"
+    },
+    {
+      "path": "images/fighter_034.png",
+      "bytes": 197977,
+      "sha256": "cdf016d46c62e6c2b435bab6a1176916e16324cf52400247bff85c6e758d6166"
+    },
+    {
+      "path": "images/fighter_035.png",
+      "bytes": 223358,
+      "sha256": "9587d98dfd5aaa1bcf9e21b0c0d4078013e557cfb160eec7079e3a2e1da20090"
+    },
+    {
+      "path": "images/fighter_036.png",
+      "bytes": 166227,
+      "sha256": "bfa50bed48867b5da3772ee3ef7920a3b474802922721e00c35104c91deee8a7"
+    },
+    {
+      "path": "images/fighter_037.png",
+      "bytes": 147020,
+      "sha256": "09a21e05f82aeb544e90f327cbf8ed64e4e7aaf3cbdf79bcdd3f07cd54bd267e"
+    },
+    {
+      "path": "images/fighter_038.png",
+      "bytes": 140049,
+      "sha256": "e6918fb9c91d34dab480b0a61c6b92aadaecd65de504190f39147d56d036c540"
+    },
+    {
+      "path": "images/fighter_039.png",
+      "bytes": 158886,
+      "sha256": "9794dfa0e7a38d55c8c20dd4e2e75542e15ced77dbcbd72e3a7e0f352b371ecd"
+    },
+    {
+      "path": "images/fighter_040.png",
+      "bytes": 132515,
+      "sha256": "0fb4844677294041d3330b72774fd19e5c17219b4b057ab812139a4066511f64"
+    },
+    {
+      "path": "images/fighter_041.png",
+      "bytes": 201513,
+      "sha256": "adbcc01d2ec2824bc43c5c4db0a7eb41fdf58c0432069389a02948f08c6bf23d"
+    },
+    {
+      "path": "images/fighter_042.png",
+      "bytes": 129053,
+      "sha256": "f8f44f85be2613398c009fca3236a5186377e3cb831196f052c05ea860446a0e"
+    },
+    {
+      "path": "images/fighter_043.png",
+      "bytes": 190274,
+      "sha256": "ea4299c03b2997b3d2bc7076745bebff17a4ed285f453ce24e14b0ed566ac0f8"
+    },
+    {
+      "path": "images/fighter_044.png",
+      "bytes": 212023,
+      "sha256": "b9bec5e30529a0f7120b39cceed3463b89bd0a6c8828f24ea2df0a312a829c14"
+    },
+    {
+      "path": "images/fighter_045.png",
+      "bytes": 185090,
+      "sha256": "f2fb0057dca169a14cb21ebd796524b835f333887404908e75bf227641bd6fd7"
+    },
+    {
+      "path": "images/fighter_046.png",
+      "bytes": 198283,
+      "sha256": "be09f40c930e203c74a7ad6bd3ebad139b72eabe656cd7da3c899f09e477d1bb"
+    },
+    {
+      "path": "images/fighter_047.png",
+      "bytes": 105302,
+      "sha256": "e49edcd112424165bafe4910d6e770c2c98e9bb59c56734464b148047d9a828a"
+    },
+    {
+      "path": "images/fighter_048.png",
+      "bytes": 201640,
+      "sha256": "3b6fc6d6b733fb9ec7e0f6f3bd921802c8deedc6d79a5a293699e232a984200e"
+    },
+    {
+      "path": "images/fighter_049.png",
+      "bytes": 183905,
+      "sha256": "b6cad3ae038d856332d0cb17ee54a2c97ed42a223aada1f3b8254330e0a337ec"
+    },
+    {
+      "path": "images/fighter_050.png",
+      "bytes": 136347,
+      "sha256": "198eef63117d00def4d5778ae713c176c0d13cc9322383919aa842dde15f485a"
+    },
+    {
+      "path": "images/fighter_051.png",
+      "bytes": 146191,
+      "sha256": "a5fc891b74c8078cf2e16b3a45e87cad3a4969b3b47c1586dae95220fa03ff83"
+    },
+    {
+      "path": "images/fighter_052.png",
+      "bytes": 176409,
+      "sha256": "ad3ed77dfd767d87903ecf720ed1f894a1463df3dbf8603abc171c8b3f79f07b"
+    },
+    {
+      "path": "images/fighter_053.png",
+      "bytes": 191842,
+      "sha256": "d316e5637207867a0aa3fc0f051c0940cbad2e1aa973ef1d8ec2c6d08545fff9"
+    },
+    {
+      "path": "images/fighter_054.png",
+      "bytes": 219224,
+      "sha256": "972a9afc478c47ca3001830ef25ddc6b9b53cb58e665f4ff6b5f2d57482eac46"
+    },
+    {
+      "path": "images/fighter_055.png",
+      "bytes": 189833,
+      "sha256": "7afb38eee8b63f4bccb3909fb10d34efd9025a696176f355204e9a373469e553"
+    },
+    {
+      "path": "images/fighter_056.png",
+      "bytes": 202516,
+      "sha256": "0fe2f6f9e28340c14151137c61e0aecca1d31fb1dc574e1af916d95e64d08cbe"
+    },
+    {
+      "path": "images/fighter_057.png",
+      "bytes": 147147,
+      "sha256": "b2b6825e3560ef4702c05376908f00221ecb83411c4b7ec133898d3462f15610"
+    },
+    {
+      "path": "images/fighter_058.png",
+      "bytes": 128357,
+      "sha256": "9d33a65d15fd81c1031eff2e871609eb66245da6c6a3a3791067d31268507f6d"
+    },
+    {
+      "path": "images/fighter_059.png",
+      "bytes": 209582,
+      "sha256": "91f439400156f6a5b521b25e41b4751674207f60f1f52247f3de64bd862edcb2"
+    },
+    {
+      "path": "images/fighter_060.png",
+      "bytes": 147992,
+      "sha256": "4be4c0121fc6f7510c867a68a9826699abfe642586ec12e0de2eece32fbf7cbb"
+    },
+    {
+      "path": "images/fighter_061.png",
+      "bytes": 176802,
+      "sha256": "84da566299bcd88f82eb7fb169aed08593699f178594d64549b11dab85417703"
+    },
+    {
+      "path": "images/fighter_062.png",
+      "bytes": 94790,
+      "sha256": "b4953085035dcfee91886e98fca4e56e7a438d14b23225dfb470c7e9b1e9820b"
+    },
+    {
+      "path": "images/fighter_063.png",
+      "bytes": 210676,
+      "sha256": "fd320eac4442979a2c080e4d2d2fc39f2046b96b677fe08ec6161bdd18c8f02f"
+    },
+    {
+      "path": "images/fighter_064.png",
+      "bytes": 150009,
+      "sha256": "65c504cccc919c12da98ea826344f3b07af37e13d1a1b435849e215716a40666"
+    },
+    {
+      "path": "images/fighter_065.png",
+      "bytes": 143635,
+      "sha256": "e5edb7646ba24500ab0ba7f60458d30c79af0109a1b92ad7531b0a5acb55e44b"
+    },
+    {
+      "path": "images/fighter_066.png",
+      "bytes": 146358,
+      "sha256": "55f537532b60de2267ba477bd66f6489a83a11ca934b65ae60e7c3dbff70ee98"
+    },
+    {
+      "path": "images/fighter_067.png",
+      "bytes": 102442,
+      "sha256": "5a62291b19b3c9bc730ef7fde5b4b355f017db6f369c14c81a0635bbfbc1e297"
+    },
+    {
+      "path": "images/fighter_068.png",
+      "bytes": 136482,
+      "sha256": "908233cca81e1f4cfdeb52c2aa988e049befd64d351aed37fc7a73b187c817eb"
+    },
+    {
+      "path": "images/fighter_069.png",
+      "bytes": 165177,
+      "sha256": "c31270bb0a7be663fa3e80649ef3f9746de7b2da26af88c17c5d946c91bb5884"
+    },
+    {
+      "path": "images/fighter_070.png",
+      "bytes": 102745,
+      "sha256": "9c99a1aad75001e8b93cddec14e93d82ef388b1e9462eb41046e94d4359db890"
+    },
+    {
+      "path": "images/fighter_071.png",
+      "bytes": 149197,
+      "sha256": "7e20fd3eb51cddf08d7520969e1da52854030d9718f670751b5b1afa3029ced7"
+    },
+    {
+      "path": "images/fighter_072.png",
+      "bytes": 171397,
+      "sha256": "6f8ff8988e13cf570f4a65bac67c9bdf8dca857a84b2640436c5dbe1f74afba2"
+    },
+    {
+      "path": "images/fighter_073.png",
+      "bytes": 120332,
+      "sha256": "05f5f85af5f09d91265b11a352f73c7eae20859b52f044cab16651a2896a4103"
+    },
+    {
+      "path": "images/fighter_074.png",
+      "bytes": 121045,
+      "sha256": "cff2c6f6d192dd0070311953d412a7cffc7f0a765fab795499b4b6f06f48e5c3"
+    },
+    {
+      "path": "images/fighter_075.png",
+      "bytes": 124405,
+      "sha256": "1c1cfb84a2fc84787e28f0aad385d4a1ebbf2db38161fa0ccac9c00484b84ebd"
+    },
+    {
+      "path": "images/r81/cracks.svg",
+      "bytes": 860,
+      "sha256": "49edd512848f83aad553f2b76f732f4357107a0674aa3326d164aacc5a2b2571"
+    },
+    {
+      "path": "index.html",
+      "bytes": 75794,
+      "sha256": "2089a2fdffc80cf01e739e42146d152ac3146e20b72ecfe1d5587128f7892183"
+    },
+    {
+      "path": "js/battle_explainer.js",
+      "bytes": 12820,
+      "sha256": "5c091d168af304287e36a897a710ea15bd1b94b2f1127e0aefaf6c9af67060da"
+    },
+    {
+      "path": "js/battle_scene_r81.js",
+      "bytes": 586387,
+      "sha256": "2478f30fb4e64026382b56e94e8055d963a99d91f6fff581e1c6389b0ccb939b"
+    },
+    {
+      "path": "js/cloud_sync.js",
+      "bytes": 8508,
+      "sha256": "328114b360fb0e00aac872f5cd36e0921a6a20ad977bcff348515c3320f098e5"
+    },
+    {
+      "path": "js/cpu_ai.js",
+      "bytes": 18741,
+      "sha256": "e93113dba1e7c58af94df9b2fed6f3d79493967809706837a87a725b52a95de9"
+    },
+    {
+      "path": "js/draft_engine.js",
+      "bytes": 9508,
+      "sha256": "146708cf647ee35fb571438451c28856c1287235d7e33fc37b82bbdac17bcdd7"
+    },
+    {
+      "path": "js/economy_engine.js",
+      "bytes": 9426,
+      "sha256": "322108ea58b4830d4abe3b5f2f21ad82fa18d667782ed8453694ae9fca2984f9"
+    },
+    {
+      "path": "js/game.js",
+      "bytes": 335478,
+      "sha256": "1f7620398a7730bc5f95dec42327bff7f8ce7f5524cc26b9b986f51f786ec234"
+    },
+    {
+      "path": "js/icon_system.js",
+      "bytes": 10219,
+      "sha256": "2243f8554efa41286352f110dc510666b61671d7010f954477d6ec6197f59ab2"
+    },
+    {
+      "path": "js/layout_engine.js",
+      "bytes": 2375,
+      "sha256": "7f6eb2dc4b53701df2ab8d0c1ab3653f15b10709ddcfd5597c207b63916ede74"
+    },
+    {
+      "path": "js/online_client.mjs",
+      "bytes": 50308,
+      "sha256": "5b621963bfbed7371c573a251a8bd0978c086db0b7ac72b3df67af1920acec8e"
+    },
+    {
+      "path": "js/online_config.js",
+      "bytes": 223,
+      "sha256": "6cf70cef8da53c0d9f696f0795e51bf6f08d340232727b8d6c1ab9ab2a3e5d9e"
+    },
+    {
+      "path": "js/performance_engine.js",
+      "bytes": 2106,
+      "sha256": "5d115e41e7561fafaa97324a57c84f7be76c8f4fbb4bddc72eff6dfa22f0e532"
+    },
+    {
+      "path": "js/presentation_engine.js",
+      "bytes": 17791,
+      "sha256": "d5311d35add3ec835df256edf03705dc107fd9be1e4e1b30e9f5f42fbf51b430"
+    },
+    {
+      "path": "js/progress_engine.js",
+      "bytes": 19374,
+      "sha256": "fb81f108fe1f6ba7307c05907783e67262dc07c20c2c90791fb8957946a14d27"
+    },
+    {
+      "path": "js/rating_engine.js",
+      "bytes": 9365,
+      "sha256": "e24b2906b7faff28507c11f144d4f028c120e367bbed3df0d133686a05664617"
+    },
+    {
+      "path": "js/shop_engine.js",
+      "bytes": 17609,
+      "sha256": "86f6eb7c1d1211517fcda619a4bda4e41ccd526bd55937e8cfebb8ce04343165"
+    },
+    {
+      "path": "js/ui_shell.js",
+      "bytes": 3057,
+      "sha256": "92808c607e34e8a82eb941444a0c4be982141298aa6c24807f209ae2bcc48788"
+    },
+    {
+      "path": "js/vendor/vk-bridge-2.15.12.min.js",
+      "bytes": 8038,
+      "sha256": "c814e228f86fce0f0ffffa1c82f28be9654288f0310060a287b777021fb6d961"
+    },
+    {
+      "path": "licenses/AnimeJS-MIT.txt",
+      "bytes": 1075,
+      "sha256": "3f3e835a9952cfc2a6ca836fb95b3257c981f24fa3ef51249055acb09931897b"
+    },
+    {
+      "path": "licenses/PixiJS-MIT.txt",
+      "bytes": 1092,
+      "sha256": "5ce7447bc57f7349ffc48338782fbcabe613696e00712b20d66bc58e780f9473"
+    },
+    {
+      "path": "licenses/THIRD_PARTY_NOTICES.txt",
+      "bytes": 1117,
+      "sha256": "00f7942456487981e7580401c44a1446e545d34bc28511cc742ea2e6c00dec1e"
+    },
+    {
+      "path": "licenses/VK-Bridge-MIT.txt",
+      "bytes": 1086,
+      "sha256": "15752ef20d62ef8f9b56deb04f8afbcb05d63823215ef2a2325da0890c940ab9"
+    },
+    {
+      "path": "licenses/earcut-LICENSE.txt",
+      "bytes": 738,
+      "sha256": "0b348fff56384b43dbb37593906904e56d0f9deb51eae590d4dc6d427fbf1808"
+    },
+    {
+      "path": "licenses/eventemitter3-LICENSE.txt",
+      "bytes": 1082,
+      "sha256": "3aecc12b1cb28832b5f65ab64291de96568c3f236a74d646281b4491f7bcadbf"
+    },
+    {
+      "path": "licenses/ismobilejs-LICENSE.txt",
+      "bytes": 1067,
+      "sha256": "57c43c929cbc20653cb0e62620a413a8bc456888c1874ebc25d08e0122cd953e"
+    },
+    {
+      "path": "licenses/parse-svg-path-LICENSE.txt",
+      "bytes": 1093,
+      "sha256": "2d5ffdfe09268750ba687a149db8392038772e7f156db3a98b615a7de0cab76e"
+    },
+    {
+      "path": "licenses/pixi-colord-LICENSE.txt",
+      "bytes": 1083,
+      "sha256": "7613d4594ee8b6163926af3435dae61c9e3d5a27cd137bd76a543ba40002d8fc"
+    },
+    {
+      "path": "licenses/tiny-lru-LICENSE.txt",
+      "bytes": 1480,
+      "sha256": "8106f20bacca3558946439afb5e4854333f0a9944eee1c60488aa7ac7fc8f52b"
+    },
+    {
+      "path": "licenses/xmldom-xmldom-LICENSE.txt",
+      "bytes": 1298,
+      "sha256": "4da724fc305d81606b245b324d4d2586916b9d248b23d82183df753ace0fdf71"
+    },
+    {
+      "path": "online/lobby.mjs",
+      "bytes": 16031,
+      "sha256": "c2d6060fdcc251941b439e46e4fb42dcf6012f8121fb0f00afcf92cc7212fe3e"
+    },
+    {
+      "path": "online/shared/battle-data.mjs",
+      "bytes": 977478,
+      "sha256": "ef98a67d5722de792982cc2743d2f92053a70cbd0387be06726e6a1cc13501a9"
+    },
+    {
+      "path": "online/shared/canon-core.mjs",
+      "bytes": 97306,
+      "sha256": "f25dbe8c2c0d70fe15d05d002357cf9b99987b3f2f06273a363c19b20db219c2"
+    },
+    {
+      "path": "online/shared/match.mjs",
+      "bytes": 14721,
+      "sha256": "f819db7c448ac26f6696f21a84385d4eb3c301f29052cdb361a10d0dc43d6567"
+    },
+    {
+      "path": "online/shared/rating.mjs",
+      "bytes": 1098,
+      "sha256": "9cd0de6ac912fac1ad81acb51886934a49802945a4a6031b393d3a228a7afef7"
+    },
+    {
+      "path": "online/shared/service.mjs",
+      "bytes": 1496,
+      "sha256": "f0f525cd6da111ceb1e54cfacc245cdb87e758a570b07cd1a0c1023a130aada1"
+    },
+    {
+      "path": "online/shared/source-data.mjs",
+      "bytes": 279944,
+      "sha256": "e7caa3c7fdf215aa2a4dcb74aa0d7f7d15401f8cd20684f7e7d3e45a77d2d40f"
+    },
+    {
+      "path": "online/tests/auth.test.mjs",
+      "bytes": 818,
+      "sha256": "2867c8c737c26329503bfd2364141b093867610f7725380a53ad9913db555c0e"
+    },
+    {
+      "path": "online/tests/e2e.local.mjs",
+      "bytes": 15832,
+      "sha256": "f1fad7ef600e365e9a6aea00c5e4c75308197a3795aa369849af76d017545d87"
+    },
+    {
+      "path": "online/tests/match.test.mjs",
+      "bytes": 4982,
+      "sha256": "88f6215602e1abb59d3672f5f49033713df5617728acebf8df47eef9b2c130e0"
+    },
+    {
+      "path": "online/tests/network-loopback.cjs",
+      "bytes": 465,
+      "sha256": "03beb35483eac2b7ff2dfd6436ce46417ccd89bbb3aaefc2de30a5d108204fbb"
+    },
+    {
+      "path": "online/tests/network-ui.test.mjs",
+      "bytes": 4445,
+      "sha256": "53a68ec408ef191ced5d9cd9174c17b15c6fa375f9fc8410817257de5371de58"
+    },
+    {
+      "path": "online/tests/rating.test.mjs",
+      "bytes": 591,
+      "sha256": "33b860a363b394f28c257d993c9718fe7a08abb7bd606783315b71dbd74faae3"
+    },
+    {
+      "path": "online/tests/reliability.test.mjs",
+      "bytes": 9191,
+      "sha256": "fdc425360249fc5bad8afb3ee6b0ea21280cdd3b6f3db7a7b3890513bd175205"
+    },
+    {
+      "path": "online/tests/ui.test.mjs",
+      "bytes": 5864,
+      "sha256": "aaa23fe655dd4732fcc9266bb34b79814873cc21e7095707d987284f812f5eb6"
+    },
+    {
+      "path": "online/tools/extract-canon.mjs",
+      "bytes": 3052,
+      "sha256": "a1d2675feccd823825064ffdb25a74b97feb2795b88bd69c04650e5802895508"
+    },
+    {
+      "path": "online/worker.mjs",
+      "bytes": 23866,
+      "sha256": "1542a70cafd4038f6039e28448e4503d53f7abd6bfa58a0c9628edd4411c9e24"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 73600,
+      "sha256": "542bb21ebd28c3d321a513c45c73aea4f94acebda72fd4bd10662eb87da8685f"
+    },
+    {
+      "path": "package.json",
+      "bytes": 695,
+      "sha256": "d95487bbf73c7dd1a9934260e05da0dbe3ed254aec9eca643d80adc93907d391"
+    },
+    {
+      "path": "r25-canon-model.js",
+      "bytes": 15719,
+      "sha256": "3861b9a62dba9013b0a89053ad1905aa92c92918b4f6958d5baf8d8932620316"
+    },
+    {
+      "path": "visual_src/battle-scene.mjs",
+      "bytes": 32242,
+      "sha256": "dae7366aa7b81ac44ed2bfe72c917bf9bdde5be7bf813c2665da0f86daac13f4"
+    },
+    {
+      "path": "visual_src/build.mjs",
+      "bytes": 310,
+      "sha256": "22480e737d023b7c4a6336f13745a74ecf020aac3eb88ccd90207d98b7511973"
+    },
+    {
+      "path": "wrangler.dev.toml",
+      "bytes": 652,
+      "sha256": "7b5b844946bea65baf6d8528c6a39d61fb8742d19d76bf93c181d763b70bd508"
+    },
+    {
+      "path": "wrangler.toml",
+      "bytes": 432,
+      "sha256": "5544e7110a1879e658ecfc177a8f3a64293cf3abf84ce84de52146882f7ad311"
     }
-  },
-  "economyEngine": {
-    "version": "R20.0.0",
-    "initialCoins": 0,
-    "seriesBaseRewards": {
-      "5:0": 150,
-      "5:1": 135,
-      "5:2": 120,
-      "5:3": 105,
-      "5:4": 90
-    },
-    "difficultyMultipliers": {
-      "easy": 1.0,
-      "medium": 1.25,
-      "hard": 1.5,
-      "master": 2.0
-    },
-    "rewardRounding": "nearest-5-coins",
-    "coinsAwardedOn": "player-victory-in-completed-first-to-five-series-vs-cpu-only",
-    "partialMatchReward": 0,
-    "seriesLossReward": 0,
-    "localTwoPlayerReward": 0,
-    "rewardedAds": {
-      "adFormat": "reward",
-      "useWaterfall": true,
-      "rewardCoins": 100,
-      "dailyLimit": 3,
-      "grantCondition": "show-result-strictly-true",
-      "clientSideDailyCap": true,
-      "bridgeFlow": "native ads availability check -> native ads show"
-    },
-    "storageKey": "soulArenaEconomyR20"
-  },
-  "shopEngine": {
-    "version": "R22.0.0",
-    "catalogSize": 53,
-    "categories": [
-      "theme",
-      "cardBack",
-      "cardFrame",
-      "primeEffect",
-      "menuBackground",
-      "profileFrame",
-      "victoryEffect",
-      "selectionEffect",
-      "title"
-    ],
-    "currency": "coins",
-    "pureCosmetic": true,
-    "rarities": [
-      "common",
-      "rare",
-      "epic",
-      "legendary"
-    ],
-    "defaultsPerCategory": true,
-    "storageKey": "soulArenaShopR21",
-    "legacyThemeMigration": true,
-    "affectsCombatStats": false,
-    "affectsDraftOdds": false,
-    "affectsPrimeOdds": false,
-    "affectsRng": false,
-    "achievementExclusiveItems": 5,
-    "achievementExclusivePurchasable": false
-  },
-  "progressEngine": {
-    "version": "R22.0.0",
-    "schemaVersion": 1,
-    "storageKey": "soulArenaProgressR22",
-    "rosterSize": 75,
-    "achievementCount": 50,
-    "trackedCharacterFields": [
-      "seen",
-      "selected",
-      "prime",
-      "duelWins",
-      "duelLosses"
-    ],
-    "trackedGlobalStats": [
-      "matchesPlayed",
-      "matchWins",
-      "matchLosses",
-      "flawlessMatchWins",
-      "seriesCompleted",
-      "seriesWins",
-      "seriesLosses",
-      "perfectSeriesWins",
-      "comeback04Wins",
-      "duelsResolved",
-      "playerDuelWins",
-      "playerDuelLosses",
-      "draftCardsSeen",
-      "playerSelections",
-      "playerPrimeAssignments",
-      "arenaVisits"
-    ],
-    "characterHistoryStartsAt": "R22",
-    "legacyCharacterHistoryRecoverable": false,
-    "legacyProgressMigration": [
-      "rating",
-      "peakRating",
-      "series stats",
-      "win streak",
-      "wins by difficulty",
-      "coins earned",
-      "rewarded claims",
-      "shop collection",
-      "coins spent"
-    ],
-    "draftProbabilityModel": "exact weighted-without-replacement inclusion probability for 10 sequential draws",
-    "exampleInclusionProbabilitiesPct": {
-      "weight0.5": 0.3964,
-      "weight4": 3.1327,
-      "weight20": 14.8015,
-      "weight40": 27.5571
-    },
-    "rewardsAreOneTime": true,
-    "combatPowerRewards": false
-  },
-  "uiPolish": {
-    "version": "R23.0.0",
-    "gameplayChanged": false,
-    "coreLogicChanged": false,
-    "responsiveTargets": [
-      "320x568",
-      "360x640",
-      "390x844",
-      "412x915",
-      "844x390",
-      "768x1024",
-      "1440x900"
-    ],
-    "surfaces": [
-      "main hub",
-      "game HUD",
-      "initiative",
-      "draft",
-      "prime",
-      "arena",
-      "battle",
-      "victory",
-      "mode select",
-      "CPU select",
-      "economy",
-      "shop/collection",
-      "profile/rating",
-      "bestiary",
-      "achievements",
-      "rules/settings"
-    ],
-    "presentationFeatures": [
-      "full-bleed arena hub background",
-      "unified glass/surface hierarchy",
-      "refined buttons and focus states",
-      "modal motion and depth",
-      "mobile/landscape compaction",
-      "reduced-motion fallbacks"
-    ],
-    "newBinaryAssets": 0
-  },
-  "finalOfflineRelease": {
-    "version": "R24.0.0",
-    "featureFreeze": true,
-    "onlinePvPIncluded": false,
-    "onlinePvPStatus": "future-separate-stage",
-    "gameplayBalanceChangedFromR23": false,
-    "playerVisibleVersionJargonCleanup": true,
-    "manualRealVkContainerCheckStillRequired": true
-  },
-  "uiArchitecture": {
-    "version": "R26.0.0",
-    "legacyHubModeSummary": "removed-from-DOM",
-    "wholeDocumentMutationObservers": 0,
-    "periodicWholeDomRefresh": false,
-    "modalManager": "js/ui_shell.js",
-    "cpuPresentationObserver": "body-attributes-only",
-    "battleExplanationIntegration": "direct-render-call",
-    "obsoleteRuntimeFilesRemoved": [
-      "r25-runtime.js",
-      "r25-battle-explanations.js",
-      "r25-ui.css"
-    ]
-  },
-  "iconSystem": {
-    "version": "R27.0.0",
-    "module": "js/icon_system.js",
-    "stylesheet": "css/icons.css",
-    "localSvgDefinitions": 48,
-    "rendering": "inline SVG using currentColor",
-    "documentWideObserver": false,
-    "periodicDomScanner": false,
-    "dynamicSurfaces": [
-      "shop",
-      "achievements",
-      "battle presentation",
-      "result",
-      "sound state"
-    ],
-    "resourceHud": [
-      "rating",
-      "coins",
-      "shards"
-    ],
-    "resourceRule": "one component + one semantic SVG + value + label"
-  },
-  "performanceEngine": {
-    "version": "R29.0.0",
-    "adaptiveTiers": [
-      "high",
-      "balanced",
-      "low"
-    ],
-    "particleCount": {
-      "high": 24,
-      "balanced": 12,
-      "low": 6
-    },
-    "particleFps": {
-      "high": 30,
-      "balanced": 24,
-      "low": 18,
-      "modal": 8
-    },
-    "backdropFiltersTarget": 0,
-    "cpuPresentation": {
-      "r31Policy": "universal readable pacing controlled by game.js R31_CPU_TIMING",
-      "thinkMs": "850-1150 all difficulties",
-      "draftPreviewMs": "480-650",
-      "primeStudyMs": "900-1250",
-      "primeRevealMsPerTarget": "480-650",
-      "battlePreviewMs": "520-700",
-      "cpuAutoFightWaitMs": "800-1050"
-    },
-    "cpuEvalCacheMaxEntries": 2400,
-    "heavyCatalogChunking": true,
-    "hiddenCatalogDomCleanup": true
-  },
-  "baseRelease": "R30.0.0",
-  "ratingRevision": "FINAL-2026-09-04",
-  "combatChanges": [
-    "75 Base/Prime ratings replaced with the final approved table.",
-    "Final ratings are the neutral fresh-fight baseline; 13-stat profiles provide matchup/arena/fatigue texture instead of an independent hidden ranking.",
-    "Gap policy enforced at runtime: 0-5 matchup-open; 6-11 upset requires curated hard counter; 12+ requires canonical hard counter/ability bypass.",
-    "Reactive hax can be pre-empted by an objective speed-blitz initiative gap when conscious activation is required.",
-    "Specific exception rules encoded for anti-divine reflection, spatial decay counter, event reversal, Balance counter, Miracle recovery, dynamic adaptation and forced equalization/stalemate.",
-    "Fresh battle matrix regenerated from the R30 runtime engine: 33,300 rows / 66,600 directed lookup keys.",
-    "Audit found zero unauthorized lower-rated fresh victories at rating gap 6+."
-  ],
-  "uiCleanup": {
-    "version": "R32.0.0",
-    "headerControls": "single flex group; no fixed independent left offsets",
-    "headerCollisionPolicy": "labels collapse <=1100px; compact controls; mobile title moves below controls",
-    "supportUi": "removed",
-    "supportModal": "removed",
-    "vkCommunityDetectionForSupport": "removed",
-    "hubFooterActions": 2,
-    "responsiveProfiles": [
-      "1440x900",
-      "1100x700",
-      "844x390",
-      "768x1024",
-      "390x844",
-      "320x568"
-    ]
-  },
-  "tutorialSystem": {
-    "version": "R34.0.0",
-    "pages": 9,
-    "storageKey": "soulArenaRulesSeenR34",
-    "firstRunRequired": true,
-    "topics": [
-      "match flow",
-      "rating gap policy",
-      "Base/Prime",
-      "fighter states",
-      "fatigue coefficients",
-      "combat calculation order",
-      "hax/counters",
-      "winner damage and carry-over",
-      "8 disputed matchup examples"
-    ],
-    "runtimeCombatRulesChanged": false,
-    "r34ExampleLanguage": "Russian player-facing explanations; technical English-only labels removed from the R34 example page."
-  },
-  "battleExplanationSystem": {
-    "version": "R34.0.0",
-    "presentationOnly": true,
-    "winnerSelectionChanged": false,
-    "reasonTypes": [
-      "special counter",
-      "accumulated damage",
-      "mutual attrition",
-      "kill condition",
-      "initiative",
-      "special ability",
-      "arena",
-      "overall advantage"
-    ],
-    "showsFormRating": true,
-    "showsEntryState": true,
-    "showsWinnerExitState": true,
-    "showsSpecialPairRule": true,
-    "showsGeneralRankingDisclaimer": true,
-    "tutorialExamples": 8,
-    "genderNeutralNarrative": true,
-    "examplesNavigationClosesBattleDetailsFirst": true
-  },
-  "finalRelease": {
-    "version": "R35.0.0",
-    "featureFreeze": true,
-    "sourceGameplayDeltaFromR34": "none",
-    "allowedDelta": "release_manifest.json only",
-    "releaseCandidate": true,
-    "realVkContainerGate": true
-  },
-  "cloudSync": {
-    "version": "R36.0.0",
-    "schemaVersion": 1,
-    "localCache": "localStorage",
-    "vk": {
-      "read": "VKWebAppStorageGet",
-      "write": "VKWebAppStorageSet",
-      "platforms": "iOS / Android / Web via VK Bridge"
-    },
-    "ok": {
-      "sdk": "FAPI",
-      "read": "storage.get",
-      "write": "storage.set",
-      "scope": "CUSTOM"
-    },
-    "cloudKeys": {
-      "meta": "sad_r36_meta",
-      "chunks": "sad_r36_0..63"
-    },
-    "maxChunkBytes": 2800,
-    "maxChunks": 64,
-    "integrity": "FNV-1a checksum + exact UTF-8 byte length + schema validation",
-    "syncedDomains": [
-      "Elo/rating stats",
-      "coins/rewarded economy state",
-      "shop ownership/equipped cosmetics",
-      "bestiary and achievement progress",
-      "cosmetic shards/themes",
-      "tutorial completion flags",
-      "R41.2 guided tutorial completion"
-    ],
-    "notSyncedByDesign": [
-      "audio mute/volume",
-      "reduced-motion preference",
-      "transient match screen/UI state"
-    ],
-    "migration": "If account cloud is empty, current local progress is uploaded once; if cloud exists, account cloud wins on a new client.",
-    "writePolicy": "debounced after progression mutations; local state remains available if platform storage is temporarily unavailable"
-  },
-  "version": "R41.3.0",
-  "feature": "Mobile Gameplay UX Fix",
-  "basedOn": "R41.2_FINAL_VK_MOBILE_ONBOARDING_FIX",
-  "moderationFixes": [
-    "VK desktop content fits viewport without page scroll",
-    "First Play is gated by a real match against Easy CPU with contextual guidance instead of text-heavy onboarding",
-    "Player choices are never forced: draft, PRIME and battle fighter selection remain fully interactive",
-    "CPU uses the production Easy AI and visibly performs draft, PRIME allocation, battle placement/counterpick and auto-Fight when it placed last",
-    "Arena is determined by the ordinary roulette flow; tutorial does not add a manual arena picker",
-    "Tutorial is replayable and never changes Elo/economy/stats/tasks/achievements",
-    "Detailed R33/R34 rules remain an optional reference",
-    "R36 cloud sync stores the revised tutorial completion flag",
-    "R39 12+ combat guard remains preserved",
-    "VK mobile onboarding layout: tutorial coach is non-overlay on narrow viewports; PRIME cards, arena summary, battle controls and rosters remain inside the viewport and do not cover required actions."
-  ],
-  "r39CombatGuard": {
-    "version": "R39.0.0",
-    "dominantGapMin": 12,
-    "protectedHigherRatedEntryStates": [
-      "FRESH",
-      "WOUNDED"
-    ],
-    "allowedUpsetExceptions": [
-      "active winnerOverride",
-      "pair-specific hardCounter",
-      "pair-specific abilityBypass"
-    ],
-    "exhaustedOrWorseRemainsDynamic": true,
-    "freshMatrixRegenerationRequired": false
-  },
-  "r41Qa": {
-    "revision": "R41.3.0",
-    "scenarioValidator": "PASS",
-    "cpuEngineValidator": "PASS",
-    "combatEngineValidator": "PASS",
-    "jsSyntax": "PASS (25 JS files)",
-    "htmlDuplicateIds": "PASS (0 duplicates)",
-    "guidedUiSmoke": "PASS (headless Chromium, source JS/CSS inlined for local QA; timers accelerated only for QA)",
-    "guidedUiFlow": [
-      "initiative",
-      "fixed teaching draft",
-      "player PRIME",
-      "visible Easy CPU PRIME",
-      "ordinary arena roulette",
-      "ordinary battle placements/counterpicks",
-      "tutorial completion"
-    ],
-    "recommendedPathPlayerTeam": [
-      28,
-      67,
-      55,
-      59,
-      25
-    ],
-    "recommendedPathCpuTeam": [
-      42,
-      49,
-      3,
-      36,
-      8
-    ],
-    "recommendedPathCpuPrimeIds": [
-      42,
-      8
-    ],
-    "freeChoiceDeviationSmoke": "PASS (player contradicts one draft recommendation and one PRIME recommendation; guided flow still reaches end)",
-    "pageScriptErrors": 0,
-    "combatDataFilesChangedFromR41Baseline": false,
-    "cpuAiFileChangedFromR41Baseline": false,
-    "resolveCombatV2SourceChangedFromR41Baseline": false,
-    "startCombatSourceChangedFromR41Baseline": false,
-    "realBrowserVkOkContainerSmoke": "REQUIRED_BEFORE_PUBLICATION",
-    "pendingFinalChecks": false,
-    "mobileOnboardingLayout": "PASS",
-    "mobileProfilesChecked": [
-      "320x568",
-      "360x640",
-      "375x812",
-      "390x844",
-      "393x852",
-      "412x915",
-      "430x932",
-      "568x320",
-      "640x360",
-      "667x375",
-      "844x390",
-      "852x393",
-      "915x412",
-      "932x430",
-      "768x1024",
-      "1024x768",
-      "1280x720",
-      "1366x768",
-      "1920x1080"
-    ],
-    "desktopRegressionProfilesChecked": [
-      "1280x720",
-      "1920x1080"
-    ],
-    "horizontalOverflowProfiles": 0,
-    "tutorialCoachOverlapProfiles": 0,
-    "primeCardsOutsideViewportProfiles": 0,
-    "fightRosterOverlapProfiles": 0,
-    "fullTutorialFlowProfiles": [
-      "320x568",
-      "390x844",
-      "844x390"
-    ],
-    "protectedProgressionSnapshotRestored": "PASS",
-    "storagePersistenceHarnessNote": "R41.3 does not modify storage/cloud code; persistence is outside the about:blank Chromium presentation harness.",
-    "mobileGameplayUx": "PASS",
-    "ordinaryEasyCpuFullMatchProfiles": [
-      "360x640",
-      "390x844",
-      "568x320",
-      "844x390"
-    ]
-  },
-  "r41GuidedTutorial": {
-    "version": "R41.3.0",
-    "storageKey": "soulArenaTutorialCompleteR41V2",
-    "firstPlayGate": true,
-    "replayable": true,
-    "normalProgressionMutation": false,
-    "mode": "cpu",
-    "difficulty": "easy",
-    "realCpuAi": true,
-    "freePlayerChoice": true,
-    "fixedDraftPool": [
-      28,
-      42,
-      49,
-      3,
-      67,
-      55,
-      59,
-      36,
-      25,
-      8
-    ],
-    "fixedTutorialSeed": 16,
-    "tutorialPrimeCount": 2,
-    "arenaFlow": "ordinary roulette UI with repeatable ARENA_01 result",
-    "manualArenaChoice": false,
-    "scriptedBattlePairs": false,
-    "scriptedWinners": false,
-    "coachLessons": [
-      "keep/pass recommendation without blocking",
-      "visible Easy CPU draft decisions",
-      "PRIME recommendation with reasons",
-      "visible CPU PRIME reveals",
-      "arena roulette explanation",
-      "live fighter/counterpick recommendation",
-      "CPU last-placer auto-Fight",
-      "fatigue carryover after each duel"
-    ],
-    "runtimeAudit": "window.SOUL_ARENA_R41.validateScenario()",
-    "expectedCpuPrimeIdsOnRecommendedPath": [
-      42,
-      8
-    ],
-    "cpuPrimeTeachingNote": "Real Easy AI chooses the strong Sacred Archer and Fire Blade in the fixed teaching seed; no tutorial-only AI override."
-  },
-  "r41_2MobileOnboardingFix": {
-    "version": "R41.2.0",
-    "date": "2026-09-17",
-    "moderationIssue": "VK: on mobile devices layout problems prevent completing onboarding.",
-    "scope": "responsive presentation of active R41 tutorial only",
-    "gameplayLogicChanged": false,
-    "cpuAiChanged": false,
-    "combatEngineChanged": false,
-    "combatDataChanged": false,
-    "economyChanged": false,
-    "progressionChanged": false,
-    "cloudSyncCodeChanged": false,
-    "sourceFilesIntentionallyChanged": [
-      "css/r41-tutorial.css",
-      "index.html (version label only)",
-      "js/game.js (R41 version constant only)",
-      "release_manifest.json"
-    ],
-    "layoutChanges": [
-      "tutorial coach participates in document flow on phone/tablet/short landscape viewports instead of covering controls",
-      "PRIME cards shrink/wrap inside narrow grid columns; one-column fallback at <=360px",
-      "arena summary is compact during tutorial on phones",
-      "battle center and rosters grow naturally so Fight and roster rows cannot overlap",
-      "320px initiative cards flex inside the available width",
-      "tutorial phases top-align in constrained mobile/landscape viewports"
-    ],
-    "automatedViewportQA": {
-      "profiles": [
-        "320x568",
-        "360x640",
-        "390x844",
-        "412x915",
-        "844x390",
-        "768x1024"
-      ],
-      "documentHorizontalOverflow": 0,
-      "mainHorizontalOverflow": 0,
-      "coachActionOverlap": 0,
-      "primeCardOutOfViewport": 0,
-      "battleOverlap": 0,
-      "fightRosterOverlap": 0,
-      "pageErrors": 0
-    },
-    "fullFlowQA": {
-      "profiles": [
-        "320x568",
-        "390x844",
-        "844x390"
-      ],
-      "stages": [
-        "initiative",
-        "draft",
-        "PRIME",
-        "arena",
-        "battle",
-        "end"
-      ],
-      "allReachedEnd": true,
-      "horizontalOverflowFindings": 0,
-      "protectedProgressionRestored": true
-    },
-    "desktopRegression": {
-      "profiles": [
-        "1280x720",
-        "1920x1080"
-      ],
-      "allReachedEnd": true,
-      "horizontalOverflowFindings": 0,
-      "pageErrors": 0
-    },
-    "testHarness": "Headless Chromium with project JS/CSS inlined for local execution and VK Bridge stub; this is not a real VK container test."
-  },
-  "r41_3MobileGameplayUxFix": {
-    "version": "R41.3.0",
-    "date": "2026-09-17",
-    "trigger": "Real-device iPhone review showed that R41.2 technically fit the viewport but remained too dense to play comfortably in portrait and landscape.",
-    "scope": "presentation-only responsive UX for active gameplay and guided tutorial on phone portrait/landscape; desktop behavior retained",
-    "gameplayLogicChanged": false,
-    "draftRulesChanged": false,
-    "cpuAiChanged": false,
-    "combatEngineChanged": false,
-    "combatDataChanged": false,
-    "primeMechanicsChanged": false,
-    "arenaRulesChanged": false,
-    "economyChanged": false,
-    "progressionChanged": false,
-    "cloudSyncChanged": false,
-    "vkBridgeChanged": false,
-    "okIntegrationChanged": false,
-    "sourceFilesIntentionallyChanged": [
-      "css/r41-mobile-ux.css (new)",
-      "index.html (mobile presentation hooks + release label)",
-      "js/game.js (presentation state/synchronization + release version)",
-      "release_manifest.json"
-    ],
-    "mobileUxChanges": [
-      "compact in-match HUD instead of repeating the large game title on phone",
-      "compact arena summary with optional full details",
-      "coach shows concise actionable summary first and full explanation behind Почему?",
-      "portrait PRIME cards become compact one-column rows with portrait/name/base-to-PRIME metadata",
-      "battle becomes action-first; active roster expands, inactive roster collapses",
-      "battle chronicle is collapsed by default and user-expandable",
-      "landscape uses a dedicated three-column roster / duel / roster layout",
-      "safe-area-aware app padding and focused-action scroll assistance",
-      "568x320 hard-floor correction resets inherited mobile battle rows to a single auto-height landscape row"
-    ],
-    "viewportMatrix": {
-      "profiles": [
-        "320x568",
-        "360x640",
-        "375x812",
-        "390x844",
-        "393x852",
-        "412x915",
-        "430x932",
-        "568x320",
-        "640x360",
-        "667x375",
-        "844x390",
-        "852x393",
-        "915x412",
-        "932x430",
-        "768x1024",
-        "1024x768",
-        "1280x720",
-        "1366x768",
-        "1920x1080"
-      ],
-      "states": [
-        "PRIME",
-        "battle"
-      ],
-      "horizontalOverflowFindings": 0,
-      "chronicleBattleOverlapFindings": 0,
-      "pageErrors": 0
-    },
-    "fullGuidedTutorialQA": {
-      "profiles": [
-        "320x568",
-        "390x844",
-        "844x390"
-      ],
-      "reachedEnd": true,
-      "pageErrors": 0,
-      "coachActionOverlapFindings": 0
-    },
-    "ordinaryEasyCpuQA": {
-      "profiles": [
-        "360x640",
-        "390x844",
-        "568x320",
-        "844x390"
-      ],
-      "reachedEnd": true,
-      "pageErrors": 0,
-      "horizontalOverflowFindings": 0
-    },
-    "freeChoiceQA": "PASS: deliberately contradicted coach in draft and PRIME; tutorial remained playable and reached end.",
-    "desktopGuard": "Desktop-only media queries are not activated at >=901px; menu and initiative geometry matched R41.2 baseline in 1280x720 and 1920x1080 harness; PRIME differences were limited to transient/animated card geometry during asynchronous rendering.",
-    "testHarness": "Headless Chromium with project JS/CSS inlined and external VK Bridge stubbed only for local execution. This is not a real VK/OK container or physical-device test."
-  }
+  ]
 }

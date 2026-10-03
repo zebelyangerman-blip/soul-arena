@@ -12,6 +12,7 @@
         let reducedMotion = safeStorageGet('soulArenaReducedMotion', '0') === '1';
         let isSystemMuted = false;
         let matchEnded = false;
+        let r81CombatBusy = false;
         let rulesStartPending = false;
         let r33TutorialPage = 0;
         // R41.3 — guided real match tutorial + presentation-only mobile UX layer.
@@ -873,6 +874,8 @@
         }
 
         function showMainMenu() {
+            window.SOUL_ARENA_VISUALS?.beginLocalSession?.();
+            r81CombatBusy = false;
             cancelCpuDecision();
             hideAllGameScreens();
             setUiScreen('menu');
@@ -3822,6 +3825,7 @@
         let arenaSlot1 = null, arenaSlot2 = null;
 
         function initGame() {
+            r81CombatBusy = false;
             cancelCpuDecision();
             matchEnded = false;
             cpuDecisionLog = [];
@@ -3973,6 +3977,7 @@
         }
 
         function nextDraftTurn() {
+            window.SOUL_ARENA_VISUALS?.phase?.('draft');
             if (p1Team.length >= 5 && p2Team.length >= 5) {
                 setDraftControlsEnabled(false);
                 setTimeout(startBonusPhase, 400); return;
@@ -4018,6 +4023,7 @@
             if (targetTeam === 2 && p2Team.length >= 5) targetTeam = 1;
 
             const newChar = { ...currentChar, isPrime: false, state: FATIGUE_STATES.FRESH };
+            window.SOUL_ARENA_VISUALS?.draftTransfer?.(newChar.id,targetTeam===1?'own':'other');
             if (targetTeam === 1 && p1Team.length < 5) p1Team.push(newChar);
             else if (targetTeam === 2 && p2Team.length < 5) p2Team.push(newChar);
             if (targetTeam === 1 && !r41TutorialMode) recordR22Selection(newChar);
@@ -4153,6 +4159,7 @@
             document.getElementById('bonus-points-wrapper').classList.remove('hidden');
             document.getElementById('bonus-points').innerText = availableBonusPoints;
             renderBonusGrid();
+            window.SOUL_ARENA_VISUALS?.phase?.('dice');
             if (r41TutorialMode) { r41PrimeAdviceIds = r41BuildPrimeAdvice(); r41AdvisePrime(); }
         }
 
@@ -4208,6 +4215,7 @@
             playSpiritBurst();
             document.getElementById('bonus-points').innerText = availableBonusPoints;
             renderBonusGrid();
+            window.SOUL_ARENA_VISUALS?.phase?.('prime',document,[char.id]);
             if (r41TutorialMode) r41PrimeSelectionFeedback(char);
         }
 
@@ -4254,6 +4262,18 @@
         })));
 
         function spinArenaRoulette() {
+            if (window.SOUL_ARENA_VISUALS?.arenaReveal) {
+                document.getElementById('spin-roulette-btn').classList.add('hidden');
+                const display = document.getElementById('roulette-display');
+                display.classList.remove('hidden','scale-95','opacity-0');
+                display.classList.add('flex','scale-100','opacity-100');
+                const finalIndex = r41TutorialMode ? Math.max(0, arenasForRoulette.findIndex(a => a.id === R41_TUTORIAL_ARENA_ID)) : PURE_CANON_DRAFT_ENGINE.pickArenaIndex(arenasForRoulette.length);
+                const session = window.SOUL_ARENA_VISUALS.session;
+                window.SOUL_ARENA_VISUALS.arenaReveal(arenasForRoulette[finalIndex].id).then(()=>{
+                    if(session===window.SOUL_ARENA_VISUALS.session)selectLocation(arenasForRoulette[finalIndex].id);
+                });
+                return;
+            }
             document.getElementById('spin-roulette-btn').classList.add('hidden');
             const display = document.getElementById('roulette-display');
             const resultText = document.getElementById('roulette-result');
@@ -4470,6 +4490,7 @@
         }
 
         function confirmFighterLock(playerNum, actor = 'human') {
+            if (r81CombatBusy) return;
             if (isCpuTurn(playerNum) && actor !== 'cpu') return;
             if (Number(playerNum) !== Number(getActivePicker())) return;
             playSwordSound();
@@ -4511,6 +4532,14 @@
         }
 
         function updateBattleRosters() {
+            const r81Anchor = document.getElementById('fight-btn');
+            let r81Counts = document.getElementById('r81-local-forces');
+            if (r81Anchor && !r81Counts) {
+                r81Counts = document.createElement('div'); r81Counts.id = 'r81-local-forces'; r81Counts.className = 'r81-force-counts';
+                r81Anchor.parentNode.insertBefore(r81Counts,r81Anchor);
+            }
+            if (r81Counts) r81Counts.innerHTML = '<span>' + getPlayerLabel(1) + ' <b>' + p1Team.filter(c=>c.state<4).length + '</b></span><i>В СТРОЮ</i><span><b>' + p2Team.filter(c=>c.state<4).length + '</b> ' + getPlayerLabel(2) + '</span>';
+
             renderRoster(p1Team, 'p1-roster', 1);
             renderRoster(p2Team, 'p2-roster', 2);
 
@@ -4576,6 +4605,8 @@
 
                 div.dataset.fighterId = String(char.id);
                 div.dataset.player = String(playerNum);
+                div.dataset.state = String(char.state);
+                div.classList.add("r81-damage-card");
                 if (char.state !== FATIGUE_STATES.DEAD && isMyTurnToPick) div.onclick = () => selectFighter(playerNum, index, 'human');
                 div.innerHTML = `
                     <div class="flex items-center gap-2.5 w-full overflow-hidden">
@@ -4598,6 +4629,7 @@
         }
 
         function selectFighter(playerNum, index, actor = 'human') {
+            if (r81CombatBusy) return;
             if (isCpuTurn(playerNum) && actor !== 'cpu') return;
             if (Number(playerNum) !== Number(getActivePicker())) return;
             const team = playerNum === 1 ? p1Team : p2Team;
@@ -4611,10 +4643,13 @@
             updateArenaUI();
             updateBattleRosters();
             updateAuraForFighters(arenaSlot1, arenaSlot2);
+            window.SOUL_ARENA_VISUALS?.phase?.('place');
         }
 
         function updateArenaUI() {
             const updateSlot = (el, char, colorClass, isLocked) => {
+                el.dataset.state = String(char?.state || 0);
+                el.dataset.fighterId = String(char?.id || '');
                 if (char) {
                     el.innerHTML = `
                         <img src="images/${getCharImgSrc(char)}" alt="${char.name}" class="absolute inset-0 char-img" onerror="handleImgError(this, '${char.emoji}')">
@@ -4651,17 +4686,18 @@
             }
         }
 
-        function startCombat(actor = 'human') {
+        async function startCombat(actor = 'human') {
+            if (r81CombatBusy) return;
             if (!arenaSlot1 || !arenaSlot2 || !p1Locked || !p2Locked) return;
             if (isCpuMode() && firstPlacer === 1 && actor !== 'cpu') return;
+            r81CombatBusy = true;
+            const r81Session = window.SOUL_ARENA_VISUALS?.session;
             cancelCpuDecision();
             const fightBtn = document.getElementById('fight-btn');
             if (fightBtn) { delete fightBtn.dataset.cpuAutoPending; fightBtn.classList.remove('r31-cpu-auto-fight', 'r31-cpu-auto-press'); }
 
-            playSpiritBurst();
-            triggerScreenShake();
-            triggerSpiritShockwave();
-            
+            if (!window.SOUL_ARENA_VISUALS) { playSpiritBurst(); triggerScreenShake(); triggerSpiritShockwave(); }
+            let r81Presentation = null;
             let logs = [];
             let c1 = arenaSlot1, c2 = arenaSlot2;
             let form1 = c1.isPrime ? 'Прайм' : 'База';
@@ -4771,7 +4807,7 @@
             // R12 presentation consumes the already-decided R17/R7 result and never participates in winner selection.
             try {
                 const diagnostic = window.SOUL_ARENA_LAST_COMBAT_DIAGNOSTIC || null;
-                window.SOUL_ARENA_PRESENTATION?.showBattleResult?.({
+                r81Presentation = window.SOUL_ARENA_PRESENTATION?.showBattleResult?.({
                     round: currentRound,
                     fighters: {
                         a: { id:c1.id, name:c1.name, emoji:c1.emoji, portrait:c1.img, form:form1, isPrime:Boolean(c1.isPrime), rating:(c1.isPrime?c1.primePower:c1.basePower), entryState:entryState1, primeAbilityName:c1.pName, primeAbilityDescription:c1.pDesc },
@@ -4792,6 +4828,12 @@
                 console.warn('R12 Battle Presentation skipped:', presentationError);
             }
 
+            try {
+                if (r81Presentation) await window.SOUL_ARENA_VISUALS?.playDuel?.(r81Presentation);
+            } catch (visualError) { console.warn('R81 scene skipped:', visualError?.message); }
+            if (r81Session !== window.SOUL_ARENA_VISUALS?.session) return;
+            r81CombatBusy = false;
+
             if (winnerSlot === 1) arenaSlot2 = null;
             else arenaSlot1 = null;
 
@@ -4805,6 +4847,7 @@
             updateArenaUI(); 
             updateBattleRosters();
             updateAuraForFighters(arenaSlot1, arenaSlot2);
+            window.SOUL_ARENA_VISUALS?.stampCards?.();
         }
 
         function logMsg(message) {
@@ -4821,6 +4864,7 @@
             cancelCpuDecision();
             setUiScreen('end');
             matchEnded = true;
+            window.SOUL_ARENA_VISUALS?.phase?.('victory');
             playVictorySound();
             if (winnerPlayer === 1) p1SeriesWins++;
             if (winnerPlayer === 2) p2SeriesWins++;

@@ -34,8 +34,25 @@ const endpoint = configured || (local ? 'http://127.0.0.1:8787' : '');
 let token = null, socket = null, room = null, view = null, reconnectTimer = null;
 let connecting = false, closed = false, pending = false, primeSelection = new Set(), battleSelection = null, status = '';
 let queueing = false, queueSince = null, queueTimer = null, profile = null, leaderboard = null;
+let leaderboardIndexing=false;
 let presence = null, secondTimer = null, clockOffset = 0;
 let duelExpanded = false, lastRenderedRoom = null, lastRenderedVersion = -1;
+const timing={http:9000,connect:9000,ack:7000,heartbeat:15000,...(local?window.SOUL_ARENA_NETWORK_TIMING||{}:{})};
+const actionKey='soulArenaPendingActionR81';
+const authStorageKey='soulArenaSessionR81';
+const launchParams=new URLSearchParams(location.search);
+const launchIdentity=launchParams.get('logged_user_id')?'ok:'+launchParams.get('logged_user_id'):
+  launchParams.get('vk_user_id')?(launchParams.get('vk_client')==='ok'?'ok:':'vk:')+launchParams.get('vk_user_id'):
+  local&&launchParams.get('debugPlayer')?'vk:'+launchParams.get('debugPlayer'):null;
+let authFlight=null,expiresAt=0,profileFlight=null,profileRetryTimer=null;
+try{const saved=JSON.parse(sessionStorage.getItem(authStorageKey)||'null');if(saved?.endpoint===endpoint && launchIdentity && saved.userId===launchIdentity && saved.expiresAt>Date.now()+30_000){token=saved.token;expiresAt=saved.expiresAt;}}catch{}
+let socketTimer=null,heartbeatTimer=null,lastSocketMessage=0,reconnectAttempt=0;
+let pendingAction=null,actionTimer=null,queueSocket=null,queueSocketTimer=null,queueHeartbeat=null;
+let enteringRoom=false,profileRetries=0,queueGeneration=0;
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const requestId=()=>window.crypto?.randomUUID?.()||`r81-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+function clearAction(){pendingAction=null;pending=false;clearTimeout(actionTimer);actionTimer=null;sessionStorage.removeItem(actionKey);}
+function clearSocketTimers(){clearTimeout(socketTimer);clearInterval(heartbeatTimer);socketTimer=null;heartbeatTimer=null;}
 
 function setStatus(value) { status = value; ui.connection.textContent = value; }
 function setError(value) {
@@ -72,8 +89,8 @@ function card(item, selectable = false, selected = false) {
   const entry = fighter(item.id);
   const name = escapeHtml(entry?.public?.name || `Боец #${item.id}`);
   const inactive = item.state >= 4;
-  return `<button type="button" class="online-fighter online-state-${item.state} ${inactive?'is-out':''} ${selected?'is-selected':''}"
-      ${selectable&&!inactive?'data-action="select" data-id="'+item.id+'"':'disabled'}>
+  return `<button type="button" data-fighter-id="${item.id}" data-id="${item.id}" data-state="${item.state}" class="online-fighter ${item.prime?'is-prime':''} r81-damage-card online-state-${item.state} ${inactive?'is-out':''} ${selected?'is-selected':''}"
+      ${selectable&&!inactive?'data-action="select"':'disabled'}>
       <span class="online-avatar">${portrait(item.id)}</span>
       <span class="online-fighter-info"><b>${name}</b><small>${item.prime?'ПРАЙМ · ':''}${statusName(item.state)}</small></span>
       ${selected?'<span class="online-check">✓</span>':''}
@@ -84,7 +101,7 @@ function button(action, label, disabled = false, extra = '') {
 }
 function miniTeam(list, label, side) {
   return `<div class="online-mini-team online-mini-${side}"><strong>${escapeHtml(label)}</strong><div class="online-mini-portraits">${
-    list.length?list.map(item=>`<span class="online-mini-fighter ${item.state>=4?'is-out':''} ${item.prime?'is-prime':''}"
+    list.length?list.map(item=>`<span data-fighter-id="${item.id}" data-state="${item.state}" class="online-mini-fighter r81-damage-card ${item.state>=4?'is-out':''} ${item.prime?'is-prime':''}"
       title="${escapeHtml(fighterName(item.id))} · ${item.prime?'Прайм · ':''}${statusName(item.state)}"
       aria-label="${escapeHtml(fighterName(item.id))}, ${item.prime?'Прайм, ':''}${statusName(item.state)}">${portrait(item.id)}</span>`).join(''):
     '<span class="online-mini-empty">Пока пусто</span>'}</div><small>${list.filter(item=>item.state<4).length} в строю</small></div>`;
@@ -131,6 +148,7 @@ function eventLine(event, seat) {
   return '';
 }
 function renderLobby() {
+  const savedCode=root.querySelector('#online-room-code')?.value;
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem">⚔️</div><h2>Найти соперника</h2>
     <p>Поиск подбирает игрока с разницей рейтинга не больше 200 очков. Рейтинг меняется после серии до пяти побед: против равного соперника это +16 за победу или −16 за поражение.</p>
@@ -141,6 +159,7 @@ function renderLobby() {
     ${endpoint?button('search','ИСКАТЬ МАТЧ'): '<p class="online-note">Адрес сервера пока не указан. После публикации Worker впишите его в <code>js/online_config.js</code>.</p>'}
     ${endpoint?button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small'):''}
     ${renderRanking()}
+    ${endpoint?button('retry_profile','Обновить профиль',false,'online-btn-secondary online-btn-small'):''}
     <div class="online-divider">Игра с другом по сети · без рейтинга</div>
     <p class="online-note">Создайте комнату и отправьте код другу. Он должен войти через другой аккаунт VK/ОК. Другой Wi-Fi не помешает: оба подключаются к серверу игры.</p>
     ${endpoint?button('create','Создать комнату',false,'online-btn-secondary'):''}
@@ -148,12 +167,15 @@ function renderLobby() {
       <input id="online-room-code" type="text" inputmode="text" autocomplete="off" maxlength="10" placeholder="КОД КОМНАТЫ" aria-label="Код комнаты" ${endpoint?'':'disabled'} required>
       <button class="online-btn online-btn-secondary" type="submit" ${endpoint?'':'disabled'}>Войти</button>
     </form>
+    <label class="online-visual-controls">Эффекты <select data-visual-quality aria-label="Качество эффектов"><option value="auto">AUTO</option><option value="high">Высокое</option><option value="low">Экономное</option></select></label>
     ${local?'<p class="online-note">Для локальной проверки откройте игру с параметрами <code>?debugPlayer=101</code> и <code>?debugPlayer=202</code> в разных окнах.</p>':''}
   </section>`;
+  if(savedCode)root.querySelector('#online-room-code').value=savedCode;
+  const qualitySelect=root.querySelector('[data-visual-quality]');if(qualitySelect)qualitySelect.value=window.SOUL_ARENA_VISUALS?.quality||'auto';
 }
 function renderRanking() {
   if (!leaderboard) return '';
-  return `<div class="online-ranking"><h3>Топ-20 игроков</h3>${leaderboard.length?
+  return `<div class="online-ranking"><h3>Топ-20 игроков</h3>${leaderboardIndexing?'<p>Переносим сохранённые рейтинги в быстрый индекс. Таблица пока предварительная — обновите её через несколько секунд.</p>':''}${leaderboard.length?
     leaderboard.map((p,i)=>`<div><span>${i+1}. ${escapeHtml(formatPlayer(p.playerId))}<small>${rankTitle(p.rating)} · ${p.series ?? 0} серий</small></span><b>${p.rating}</b></div>`).join(''):
     '<p>Пока нет игроков в рейтинге.</p>'}</div>`;
 }
@@ -287,6 +309,7 @@ function renderMatch() {
     <div class="online-roomline">${m.mode==='friend'?`<span>Комната <b>${escapeHtml(room)}</b></span>${button('copy','Копировать код',false,'online-btn-small')}`:
       `<span>Матч с соперником</span>`}<span class="online-presence" data-online-presence>${presence===false?'Соперник переподключается':presence===true?'Соперник в сети':''}</span></div>
     ${m.turnDeadlineAt?`<div class="online-turn-clock">${mine?'ВАШ ХОД':'ХОД СОПЕРНИКА'} · осталось <b data-turn-clock>03:00</b></div>`:''}
+    <div class="online-force-strip"><span>Вы <b>${ownList.filter(c=>c.state<4).length}</b></span><i>В СТРОЮ</i><span><b>${theirList.filter(c=>c.state<4).length}</b> ${otherLabel}</span></div>
     <div class="online-mini-score">${miniTeam(ownList,'Ваши бойцы','own')}${miniTeam(theirList,`Бойцы ${m.mode==='friend'?'друга':'соперника'}`,'other')}</div>
     ${m.arenaId?`<div class="online-arena">${escapeHtml(arenaName(m.arenaId))}</div>`:''}
     <div class="online-main-grid">
@@ -300,10 +323,10 @@ function renderMatch() {
     </div>
     ${history.length?`<details class="online-event-log"><summary>Ход текущего матча</summary><ol>${history.map(line=>`<li>${escapeHtml(line)}</li>`).join('')}</ol></details>`:''}
     <footer class="online-footer">${!['waiting','series_end'].includes(m.stage)?button('surrender','Сдаться',false,'online-btn-danger'):
-      button('new_room','Выйти из комнаты',false,'online-btn-secondary')}</footer>
+      button('new_room','Выйти из комнаты',false,'online-btn-secondary')}${button('reconnect','Восстановить соединение',false,'online-btn-secondary online-btn-small')}</footer>
   </section>`;
   if(pending) ui.content.querySelectorAll('[data-action]').forEach(element=>{
-    if(element.dataset.action!=='toggle_duel') element.disabled=true;
+    if(!['toggle_duel','reconnect'].includes(element.dataset.action)) element.disabled=true;
   });
   if(oldStage===m.stage && !newDuel) {
     root.scrollTop=oldScroll;
@@ -316,42 +339,76 @@ function renderMatch() {
   updateClocks();
 }
 
-async function api(path, payload, authorized = true) {
-  const headers = {'Content-Type':'application/json'};
-  if (authorized) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(endpoint + path,{method:'POST',headers,body:JSON.stringify(payload || {})});
-  let result;
-  try { result = await response.json(); } catch { throw new Error('Сервер вернул непонятный ответ'); }
-  if (!response.ok) throw new Error(result.error || 'Сервер недоступен');
-  return result;
+async function requestApi(path,payload,authorized,method) {
+  const stablePayload={...(payload||{})};
+  if(path==='/room/create')stablePayload.requestId ||= requestId();
+  let renewed=false;
+  for(let attempt=0;attempt<2;attempt++) {
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timing.http);
+    try {
+      const headers={'Content-Type':'application/json',...(authorized?{Authorization:`Bearer ${token}`}:{})};
+      const response=await fetch(endpoint+path,{method,headers,signal:controller.signal,...(method==='POST'?{body:JSON.stringify(stablePayload)}:{})});
+      let result;try{result=await response.json();}catch{throw Object.assign(new Error('Сервер вернул непонятный ответ'),{retryable:true});}
+      if(!response.ok) {
+        if(response.status===401 && authorized && !renewed) {
+          renewed=true;clearTimeout(timer);await authenticate(true);attempt--;continue;
+        }
+        throw Object.assign(new Error(result.error||'Сервис временно недоступен'),{status:response.status,code:result.code,retryable:response.status===429||response.status>=500});
+      }
+      return result;
+    }catch(error){
+      const aborted=error.name==='AbortError';
+      if(aborted)error=Object.assign(new Error('Сервер не ответил вовремя. Проверяем подключение.'),{retryable:true});
+      if(error instanceof TypeError)error=Object.assign(new Error('Нет связи с сервером. Проверьте интернет.'),{retryable:true});
+      if(attempt===1 || !error.retryable)throw error;
+      clearTimeout(timer);await pause(450+Math.random()*350);
+    }finally{clearTimeout(timer);}
+  }
 }
-async function apiGet(path) {
-  const response=await fetch(endpoint+path,{headers:{Authorization:`Bearer ${token}`}});
-  const result=await response.json();
-  if(!response.ok) throw new Error(result.error||'Сервер недоступен');
-  return result;
-}
+async function api(path,payload,authorized=true){return requestApi(path,payload,authorized,'POST');}
+async function apiGet(path){return requestApi(path,null,true,'GET');}
 async function authenticate(force = false) {
-  if (token && !force) return;
-  const params = new URLSearchParams(location.search);
-  const debugPlayer = local && /^\d+$/.test(params.get('debugPlayer') || '') ? params.get('debugPlayer') : undefined;
-  const result = await api('/session',{launch:location.search, ...(debugPlayer?{debugPlayer}:{})},false);
-  token = result.token;
+  if (token && !force && (!expiresAt || expiresAt>Date.now()+30_000))return;
+  if(authFlight)return authFlight;
+  authFlight=(async()=>{
+    const params=new URLSearchParams(location.search);
+    const debugPlayer=local&&/^\d+$/.test(params.get('debugPlayer')||'')?params.get('debugPlayer'):undefined;
+    const result=await api('/session',{launch:location.search,...(debugPlayer?{debugPlayer}:{})},false);
+    token=result.token;expiresAt=result.expiresAt||Date.now()+11*3600_000;
+    if(launchIdentity)sessionStorage.setItem(authStorageKey,JSON.stringify({token,expiresAt,endpoint,userId:result.userId||launchIdentity}));
+  })();
+  try{return await authFlight;}finally{authFlight=null;}
 }
 async function refreshProfile() {
   if(!endpoint) return;
-  await authenticate();
-  profile=await apiGet('/rating/me');
-  if(isOpen() && !view && !queueing) renderLobby();
+  if(profileFlight)return profileFlight;
+  profileFlight=(async()=>{
+    await authenticate();const result=await apiGet('/rating/me');
+    profile=result;profileRetries=0;
+    if(isOpen() && !view && !queueing){renderLobby();setStatus('Готово к поиску соперника');setError('');}
+    return result;
+  })();
+  try{return await profileFlight;}finally{profileFlight=null;}
+}
+function loadProfile() {
+  clearTimeout(profileRetryTimer);setStatus('Проверяем ваш PvP-профиль…');
+  refreshProfile().catch(error=>{
+    if(closed || !isOpen() || view || queueing)return;
+    setError(error.message);setStatus('Профиль временно недоступен');
+    if(error.retryable && profileRetries++<2)profileRetryTimer=setTimeout(loadProfile,1200*profileRetries);
+  });
 }
 function stopQueue() {
+  queueGeneration++;
   queueing=false;queueSince=null;
   clearTimeout(queueTimer);queueTimer=null;
   sessionStorage.removeItem(searchKey);
+  clearTimeout(queueSocketTimer);clearInterval(queueHeartbeat);queueSocket?.close(1000,'Search complete');queueSocket=null;
 }
 async function handleQueue(response) {
   if(Number.isFinite(response.serverNow)) clockOffset=response.serverNow-Date.now();
   if(response.status==='matched') {
+    if(enteringRoom)return;
     stopQueue();
     pending=false;
     await enterRoom(response.room,false);
@@ -360,31 +417,63 @@ async function handleQueue(response) {
     sessionStorage.setItem(searchKey,'1');
     pending=false;renderQueue();
     clearTimeout(queueTimer);
-    queueTimer=setTimeout(pollQueue,3000);
+    connectQueueSocket();
+    queueTimer=setTimeout(pollQueue,queueSocket?.readyState===WebSocket.OPEN?15000:5000);
   } else {
     stopQueue();pending=false;renderLobby();
     setStatus(response.status==='expired'?'Пока соперников нет. Попробуйте ещё раз.':'Поиск был прерван. Нажмите «Искать матч» снова.');
   }
 }
+function connectQueueSocket() {
+  if(!queueing || !isOpen() || closed || queueSocket)return;
+  const url=new URL(endpoint+'/queue/ws');url.protocol=url.protocol==='https:'?'wss:':'ws:';
+  const ws=new WebSocket(url,['soul-online-v1',`token.${token}`]);queueSocket=ws;
+  let lastMessage=Date.now();
+  queueSocketTimer=setTimeout(()=>ws.close(),timing.connect);
+  ws.onopen=()=>{
+    if(queueSocket!==ws)return;clearTimeout(queueSocketTimer);
+    queueHeartbeat=setInterval(()=>{
+      if(queueSocket!==ws || !queueing || document.hidden)return;
+      if(Date.now()-lastMessage>50000){ws.close();return;}
+      if(ws.readyState===WebSocket.OPEN)ws.send('arena:ping');
+    },timing.heartbeat);
+  };
+  ws.onmessage=event=>{
+    if(queueSocket!==ws)return;lastMessage=Date.now();
+    if(event.data==='arena:pong')return;
+    try{const m=JSON.parse(event.data);if(m.type==='queue_matched' && queueing)handleQueue(m).catch(error=>setError(error.message));}catch{}
+  };
+  ws.onclose=()=>{
+    if(queueSocket!==ws)return;queueSocket=null;clearTimeout(queueSocketTimer);clearInterval(queueHeartbeat);
+    if(queueing && !closed){clearTimeout(queueTimer);queueTimer=setTimeout(pollQueue,5000);}
+  };
+  ws.onerror=()=>{};
+}
 async function pollQueue() {
   if(!queueing) return;
+  const generation=queueGeneration;
   try {
-    await handleQueue(await apiGet('/queue/status'));
+    const response=await apiGet('/queue/status');
+    if(generation!==queueGeneration || !queueing)return;
+    await handleQueue(response);
   } catch(error) {
     setError(`Поиск временно недоступен: ${error.message}`);
     if(queueing) queueTimer=setTimeout(async()=>{
-      try { await authenticate(true); pollQueue(); }
+      try { await authenticate(); pollQueue(); }
       catch { queueTimer=setTimeout(pollQueue,5000); }
     },5000);
   }
 }
 async function startSearch() {
   if(pending||queueing) return;
+  const generation=++queueGeneration;
   pending=true;setError('');setStatus('Подключаем поиск игроков…');
   try {
     if(!endpoint) throw new Error('Адрес сервера пока не задан');
     await authenticate();
-    await handleQueue(await api('/queue/join'));
+    const response=await api('/queue/join');
+    if(generation!==queueGeneration || closed)return;
+    await handleQueue(response);
     if(queueing) setStatus('Поиск соперника запущен');
   } catch(error) {pending=false;setStatus('Нет подключения');setError(error.message);}
 }
@@ -400,6 +489,7 @@ async function cancelSearch() {
   }
 }
 function resetRoom() {
+  clearSocketTimers();clearAction();window.SOUL_ARENA_VISUALS?.cancel?.();
   clearTimeout(reconnectTimer);socket?.close(1000,'Left room');socket=null;
   room=null;view=null;pending=false;connecting=false;presence=null;
   battleSelection=null;primeSelection.clear();duelExpanded=false;lastRenderedRoom=null;lastRenderedVersion=-1;
@@ -415,16 +505,27 @@ function connectSocket() {
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(url,['soul-online-v1',`token.${token}`]);
   socket = ws;
+  clearSocketTimers();socketTimer=setTimeout(()=>{if(socket===ws && connecting)ws.close(4000,'Connection timeout');},timing.connect);
   const connectedRoom=room;
   ws.onopen = () => {
     if(socket!==ws || room!==connectedRoom) return;
-    connecting=false; setStatus('Соединение установлено'); setError('');
+    connecting=false;clearTimeout(socketTimer);lastSocketMessage=Date.now();
+    if(pendingAction)pendingAction.replayed=false;
+    setStatus('Соединение установлено');setError('');
+    heartbeatTimer=setInterval(()=>{
+      if(socket!==ws || closed || document.hidden)return;
+      if(Date.now()-lastSocketMessage>45000){ws.close(4000,'Heartbeat timeout');return;}
+      if(ws.readyState===WebSocket.OPEN)ws.send('arena:ping');
+    },timing.heartbeat);
   };
   ws.onmessage = event => {
     if(socket!==ws || room!==connectedRoom) return;
+    lastSocketMessage=Date.now();
+    if(event.data==='arena:pong')return;
     try {
       const message = JSON.parse(event.data);
-      if (message.type === 'error') { pending=false; setError(message.error);renderMatch(); }
+      if(message.type==='ack' && message.requestId===pendingAction?.requestId && view?.match.version>=message.version)clearAction();
+      if (message.type === 'error') {clearAction();setError(message.error);renderMatch();if(message.code==='TEMPORARY_UNAVAILABLE')ws.send(JSON.stringify({type:'sync'}));}
       if (message.type === 'presence') {
         presence=message.opponentConnected;
         const label=root.querySelector('[data-online-presence]');
@@ -433,39 +534,57 @@ function connectSocket() {
       if (message.type === 'snapshot') {
         if(!message.match || !Number.isInteger(message.match.version) ||
           (view?.match && message.match.version<view.match.version)) return;
+        reconnectAttempt=0;
         if(Number.isFinite(message.serverNow)) clockOffset=message.serverNow-Date.now();
         const prior=view?.match;
         if (prior?.stage !== message.match.stage || prior?.turn !== message.match.turn) primeSelection.clear();
         if (prior?.stage !== message.match.stage || prior?.turn !== message.match.turn ||
           prior?.round !== message.match.round) battleSelection=null;
         view={match:message.match,seat:message.seat};
-        pending=false; setError('');
+        if(pendingAction && message.match.version>pendingAction.action.version)clearAction();
+        else if(pendingAction && ws.readyState===WebSocket.OPEN) {
+          if(Date.now()-(pendingAction.createdAt||0)>45000) {
+            clearAction();setError('Подтверждение хода не получено. Состояние восстановлено — проверьте поле перед следующим ходом.');
+          } else if(!pendingAction.replayed && (pendingAction.retries||0)<3) {
+            pendingAction.replayed=true;pendingAction.retries=(pendingAction.retries||0)+1;
+            ws.send(JSON.stringify({type:'action',requestId:pendingAction.requestId,action:pendingAction.action}));
+          }
+          armActionTimer();
+        }else pending=false;
+        setError('');
         setStatus(message.match.stage==='waiting'?'Ожидаем друга':
           message.match.stage==='series_end'?'Серия завершена':
           message.match.stage==='match_end'?'Матч завершён':
           message.match.turn===message.seat?'Ваш ход':'Ждём соперника');
         renderMatch();
+        window.SOUL_ARENA_VISUALS?.onlineTransition?.(prior,message.match,message.seat,room);
         if(message.match.stage==='series_end' && message.match.ratingFinalized &&
           (!prior || !prior.ratingFinalized || prior.stage!=='series_end'))
           refreshProfile().catch(()=>{});
       }
-    } catch {pending=false;renderMatch();setError('Сервер отправил некорректное сообщение'); }
+    } catch {clearAction();renderMatch();setError('Сервер отправил некорректное сообщение'); }
   };
-  ws.onclose = () => {
+  ws.onclose = event => {
     if (socket !== ws) return;
-    socket=null; connecting=false; pending=false;
+    clearSocketTimers();clearTimeout(actionTimer);socket=null;connecting=false;pending=Boolean(pendingAction);
     if (closed || !isOpen()) return;
+    if(event?.code===4001){setStatus('Матч открыт на другом устройстве');setError('Закройте второе окно игры и нажмите «Восстановить соединение».');renderMatch();return;}
     setStatus('Соединение прервалось; восстанавливаем…');
     clearTimeout(reconnectTimer);
     reconnectTimer=setTimeout(async () => {
-      try { await authenticate(true); connectSocket(); }
-      catch(error) { setError(error.message); reconnectTimer=setTimeout(connectSocket,5000); }
-    },2500);
+      try { await authenticate(); connectSocket(); }
+      catch(error) {
+        setError(error.message);
+        if(error.status===401){setStatus('Перезапустите игру через VK или ОК для нового сеанса');renderMatch();}
+        else reconnectTimer=setTimeout(connectSocket,5000);
+      }
+    },Math.min(10000,700*2**Math.min(reconnectAttempt++,4))+Math.random()*500);
   };
   ws.onerror = () => setStatus('Проверяем подключение…');
 }
 async function enterRoom(code, create=false) {
-  if (pending) return;
+  if (pending || enteringRoom) return;
+  enteringRoom=true;
   pending=true; setError(''); setStatus('Проверяем соединение с сервером…');
   try {
     if (!endpoint) throw new Error('Адрес сервера пока не задан');
@@ -480,17 +599,38 @@ async function enterRoom(code, create=false) {
     }
     if(Number.isFinite(result.serverNow)) clockOffset=result.serverNow-Date.now();
     room = create?result.room:code;
+    try{const stored=JSON.parse(sessionStorage.getItem(actionKey)||'null');if(stored?.room===room)pendingAction={...stored,replayed:false};}catch{}
     sessionStorage.setItem(storageKey,room);
-    view=result; closed=false; pending=false; presence=null; renderMatch(); connectSocket();
+    view=result; closed=false; pending=Boolean(pendingAction); presence=null; renderMatch(); connectSocket();
   } catch(error) { pending=false; setStatus('Нет подключения'); setError(error.message); }
+  finally{enteringRoom=false;}
+}
+function armActionTimer() {
+  clearTimeout(actionTimer);
+  actionTimer=setTimeout(()=>{
+    if(!pendingAction || !isOpen() || closed)return;
+    if(Date.now()-(pendingAction.createdAt||0)>45000) {
+      clearAction();setStatus('Требуется восстановление соединения');setError('Сервер не подтвердил ход. Нажмите «Восстановить соединение».');
+      socket?.close(4000,'Action deadline exceeded');renderMatch();return;
+    }
+    setStatus('Проверяем, принят ли ход…');
+    if(socket?.readyState===WebSocket.OPEN) {
+      socket.send(JSON.stringify({type:'sync'}));
+      actionTimer=setTimeout(()=>socket?.close(4000,'Action confirmation timeout'),timing.ack);
+    }else connectSocket();
+  },timing.ack);
 }
 function sendAction(action) {
   if (pending || socket?.readyState !== WebSocket.OPEN || !view) { setError('Подождите соединения с сервером'); return; }
   pending=true; setError('');setStatus('Отправляем ход на сервер…');renderMatch();
-  try { socket.send(JSON.stringify({type:'action',action:{...action,version:view.match.version}})); }
-  catch {pending=false;renderMatch();setError('Не удалось отправить ход. Проверяем соединение.');}
+  pendingAction={room,requestId:requestId(),action:{...action,version:view.match.version},replayed:false,createdAt:Date.now(),retries:0};
+  sessionStorage.setItem(actionKey,JSON.stringify(pendingAction));
+  try { socket.send(JSON.stringify({type:'action',requestId:pendingAction.requestId,action:pendingAction.action}));armActionTimer(); }
+  catch {socket?.close(4000,'Send failed');setError('Не удалось отправить ход. Проверяем соединение.');}
 }
 function leave() {
+  clearSocketTimers();clearTimeout(actionTimer);clearTimeout(profileRetryTimer);clearInterval(secondTimer);secondTimer=null;
+  window.SOUL_ARENA_VISUALS?.cancel?.();
   if(queueing) {stopQueue();api('/queue/cancel').catch(()=>{});}
   root.classList.add('hidden'); closed=true;pending=false;clearTimeout(reconnectTimer);
   socket?.close(1000,'Closed by player'); socket=null; connecting=false;
@@ -499,7 +639,8 @@ function leave() {
 window.openOnlineArena = function() {
   window.closeGameModeSelect?.();
   root.classList.remove('hidden'); closed=false; setError('');
-  if (view && room) { renderMatch(); connectSocket(); return; }
+  if(!secondTimer) secondTimer=setInterval(updateClocks,1000);
+  if (view && room) {pending=Boolean(pendingAction);renderMatch();connectSocket();return;}
   renderLobby();
   if(!secondTimer) secondTimer=setInterval(updateClocks,1000);
   const saved = sessionStorage.getItem(storageKey);
@@ -509,7 +650,7 @@ window.openOnlineArena = function() {
     authenticate().then(pollQueue).catch(error=>{stopQueue();renderLobby();setError(error.message);});
   } else {
     setStatus(endpoint?'Проверяем ваш PvP-профиль…':'Ожидается адрес опубликованного сервера');
-    refreshProfile().then(()=>setStatus('Готово к поиску соперника')).catch(error=>setError(error.message));
+    loadProfile();
   }
 };
 root.addEventListener('submit',event => {
@@ -524,13 +665,18 @@ root.addEventListener('click',event => {
   if (!target || !root.contains(target)) return;
   const action = target.dataset.action;
   if (action==='close') return leave();
+  if(action==='retry_profile')return loadProfile();
+  if(action==='reconnect'){
+    closed=false;clearSocketTimers();socket?.close();socket=null;connecting=false;clearTimeout(reconnectTimer);
+    authenticate().then(connectSocket).catch(error=>setError(error.message));return;
+  }
   if (action==='search') return startSearch();
   if (action==='cancel_search') return cancelSearch();
   if (action==='ranking') {
     (async()=>{
       try {
         await authenticate();
-        leaderboard=(await apiGet('/rating/top')).top;
+        const ranking=await apiGet('/rating/top');leaderboard=ranking.top;leaderboardIndexing=Boolean(ranking.indexing);
         if(!view) queueing?renderQueue():renderLobby();
       }
       catch(error) {setError(error.message);}
@@ -575,3 +721,16 @@ root.addEventListener('click',event => {
   if (action==='surrender' && !window.confirm('Сдаться и отдать победу в серии сопернику?')) return;
   if (['roll_prime','spin_arena','roll_battle','ready','surrender'].includes(action)) sendAction({type:action});
 });
+function resumeConnection(){
+  if(!isOpen() || closed || document.hidden)return;
+  if(room){
+    if(socket?.readyState===WebSocket.OPEN){lastSocketMessage=Date.now();socket.send(JSON.stringify({type:'sync'}));}
+    else {clearTimeout(reconnectTimer);connecting=false;socket?.close();socket=null;authenticate().then(connectSocket).catch(error=>setError(error.message));}
+  }else if(queueing){clearTimeout(queueTimer);authenticate().then(pollQueue).catch(error=>setError(error.message));}
+  else loadProfile();
+}
+window.addEventListener('online',resumeConnection);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)resumeConnection();});
+window.addEventListener('pageshow',event=>{if(event.persisted)resumeConnection();});
+
+root.addEventListener('change',event=>{if(event.target.matches('[data-visual-quality]'))window.SOUL_ARENA_VISUALS?.setQuality?.(event.target.value);});

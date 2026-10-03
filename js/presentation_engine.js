@@ -2,7 +2,7 @@
 
 /* Soul Arena R12 - Battle Presentation Engine. Presentation only: no combat math or winner selection. */
 (function () {
-    const PRESENTATION_VERSION = 'R34.0.0';
+    const PRESENTATION_VERSION = 'R81.1';
     const ICONS = window.SOUL_ARENA_ICONS || null;
     const icon = (name,size=18) => ICONS?.svg?.(name,{size}) || '';
     const STATE_META = Object.freeze([
@@ -140,7 +140,7 @@
         return Object.freeze({
             version: PRESENTATION_VERSION,
             round: Number(payload?.round || 0),
-            winner, loser, winnerExitState, loserExitState,
+            fighters: Object.freeze({a,b}), winner, loser, winnerExitState, loserExitState,
             winnerStateInfo, entryWinner, entryLoser,
             difficulty, difficultyInfo, margin,
             factors, arena, narrative, sourceLabel, explanation,
@@ -240,6 +240,7 @@
     }
 
     function reset() {
+        window.SOUL_ARENA_VISUALS?.beginLocalSession?.();
         lastModel = null;
         const panel = document.getElementById('combat-chronicle-panel');
         const strip = document.getElementById('battle-presentation-strip');
