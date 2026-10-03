@@ -67,18 +67,21 @@ function fighterName(id) { return fighter(id)?.public?.name || `Боец #${id}`
 function arena(id) { return arenaCatalog.find(a => a.id === id); }
 function arenaName(id) { return arena(id)?.publicName || 'Арена'; }
 function statusName(state) { return ['Свежий','Ранен','Истощён','На грани','Мёртв'][state] || '—'; }
+const PVP_RANKS=Object.freeze([
+  [800,'Новичок'],[1000,'Любитель'],[1200,'Боец'],[1400,'Ветеран'],[1600,'Мастер'],
+  [1800,'Грандмастер'],[2000,'Чемпион'],[2200,'Легенда'],[2400,'Хранитель арены'],[2500,'Властелин арены']
+].map(([floor,title])=>Object.freeze({floor,title})));
 function rankTitle(rating) {
-  const score=Number(rating)||0;
-  if(score>=2500) return 'Властелин арены';
-  if(score>=2400) return 'Хранитель арены';
-  if(score>=2200) return 'Легенда';
-  if(score>=2000) return 'Чемпион';
-  if(score>=1800) return 'Грандмастер';
-  if(score>=1600) return 'Мастер';
-  if(score>=1400) return 'Ветеран';
-  if(score>=1200) return 'Боец';
-  if(score>=1000) return 'Любитель';
-  return 'Новичок';
+  return [...PVP_RANKS].reverse().find(r=>Number(rating)>=r.floor)?.title || 'Новичок';
+}
+function renderRankProgress(value) {
+  if(!value)return '';
+  const score=Number(value.rating)||800;
+  let index=0;for(let i=1;i<PVP_RANKS.length;i++)if(score>=PVP_RANKS[i].floor)index=i;
+  const current=PVP_RANKS[index],next=PVP_RANKS[index+1];
+  const percent=next?Math.max(0,Math.min(100,(score-current.floor)/(next.floor-current.floor)*100)):100;
+  return `<div class="r82-rank-progress"><div><b>${escapeHtml(current.title)}</b><small>${next?`До «${escapeHtml(next.title)}»: ${Math.max(0,next.floor-score)} Elo`:'Высшее звание арены'}</small></div><div class="r82-rank-track" role="progressbar" aria-label="Прогресс звания PvP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(percent)}"><i style="width:${percent}%"></i></div></div>
+    <details class="r82-rank-list"><summary>Все звания PvP</summary><div>${PVP_RANKS.map(r=>`<span class="${r===current?'is-current':''}"><b>${r.floor}</b>${escapeHtml(r.title)}</span>`).join('')}</div><p>Рейтинг меняется за завершённую рейтинговую серию до пяти побед. При равном Elo победа даёт +16, поражение −16. Комнаты с другом и реванши не изменяют PvP-рейтинг.</p></details>`;
 }
 function portrait(id) {
   const image=fighter(id)?.public?.portrait;
@@ -150,11 +153,12 @@ function eventLine(event, seat) {
 function renderLobby() {
   const savedCode=root.querySelector('#online-room-code')?.value;
   ui.content.innerHTML = `<section class="online-panel online-lobby">
-    <div class="online-emblem">⚔️</div><h2>Найти соперника</h2>
+    <div class="online-emblem r82-online-gate" aria-hidden="true"><svg width="35" height="35" viewBox="0 0 40 40" fill="none"><path d="M20 4L32 12V28L20 36L8 28V12Z" stroke="currentColor" stroke-width="1.5"/><path d="M20 10V30M12 16L28 24M28 16L12 24" stroke="currentColor" stroke-width="2"/></svg></div><h2>Найти соперника</h2>
     <p>Поиск подбирает игрока с разницей рейтинга не больше 200 очков. Рейтинг меняется после серии до пяти побед: против равного соперника это +16 за победу или −16 за поражение.</p>
     <div class="online-my-rating">Ваш PvP-рейтинг <b>${profile?.rating ?? '—'}</b>
       ${profile?`<span class="online-rank-title">${rankTitle(profile.rating)}</span>`:''}
       <small>${profile?`${profile.wins} побед · ${profile.losses} поражений`: 'Появится после входа через VK/ОК'}</small></div>
+    ${renderRankProgress(profile)}
     ${profile?.history?.length?`<div class="online-history"><strong>Последние серии</strong>${profile.history.slice(0,3).map(x=>`<span>${x.won?'Победа':'Поражение'} · ${escapeHtml(formatPlayer(x.opponent))} <b>${x.delta>0?'+':''}${x.delta}</b></span>`).join('')}</div>`:''}
     ${endpoint?button('search','ИСКАТЬ МАТЧ'): '<p class="online-note">Адрес сервера пока не указан. После публикации Worker впишите его в <code>js/online_config.js</code>.</p>'}
     ${endpoint?button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small'):''}
@@ -309,7 +313,7 @@ function renderMatch() {
     <div class="online-roomline">${m.mode==='friend'?`<span>Комната <b>${escapeHtml(room)}</b></span>${button('copy','Копировать код',false,'online-btn-small')}`:
       `<span>Матч с соперником</span>`}<span class="online-presence" data-online-presence>${presence===false?'Соперник переподключается':presence===true?'Соперник в сети':''}</span></div>
     ${m.turnDeadlineAt?`<div class="online-turn-clock">${mine?'ВАШ ХОД':'ХОД СОПЕРНИКА'} · осталось <b data-turn-clock>03:00</b></div>`:''}
-    <div class="online-force-strip"><span>Вы <b>${ownList.filter(c=>c.state<4).length}</b></span><i>В СТРОЮ</i><span><b>${theirList.filter(c=>c.state<4).length}</b> ${otherLabel}</span></div>
+    <div class="online-force-strip"><span>Вы <b>${ownList.filter(c=>c.state<4).length}/5</b></span><i>${m.stage==='draft'?'ОТРЯДЫ':'В СТРОЮ'}</i><span><b>${theirList.filter(c=>c.state<4).length}/5</b> ${otherLabel}</span></div>
     <div class="online-mini-score">${miniTeam(ownList,'Ваши бойцы','own')}${miniTeam(theirList,`Бойцы ${m.mode==='friend'?'друга':'соперника'}`,'other')}</div>
     ${m.arenaId?`<div class="online-arena">${escapeHtml(arenaName(m.arenaId))}</div>`:''}
     <div class="online-main-grid">

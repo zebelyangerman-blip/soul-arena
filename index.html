@@ -21,14 +21,15 @@
 <link href="css/r37-desktop-fit.css" rel="stylesheet"/>
 <link href="css/r41-tutorial.css" rel="stylesheet"/>
 <link href="css/r41-mobile-ux.css" rel="stylesheet"/>
-<link href="css/online.css?v=r81.1" rel="stylesheet"/>
-<link href="css/battle_r81.css?v=r81.1" rel="stylesheet"/>
+<link href="css/online.css?v=r82.0" rel="stylesheet"/>
+<link href="css/battle_r81.css?v=r82.0" rel="stylesheet"/>
+<link href="css/interface_r82.css?v=r82.0" rel="stylesheet"/>
 </head>
-<body class="flex flex-col relative r23-ui r28-ui r29-ui r31-ui r32-ui r33-ui r34-ui r37-ui r41-ui r413-mobile-ux game-ui" data-reduced-motion="false" data-screen="menu" data-ui-theme="ember">
+<body class="flex flex-col relative r23-ui r28-ui r29-ui r31-ui r32-ui r33-ui r34-ui r41-ui r413-mobile-ux game-ui r82-ui" data-reduced-motion="false" data-screen="menu" data-ui-theme="ember">
 <div aria-live="polite" class="r13-boot-splash" id="r13-boot-splash" role="status">
-<div class="r13-boot-mark"><span>魂</span></div>
+<div class="r82-boot-orbit"><svg width="92" height="92" viewBox="0 0 100 100" fill="none" aria-hidden="true"><circle cx="50" cy="50" r="44" stroke="currentColor" opacity=".2"/><path d="M50 15L79 32V68L50 85L21 68V32Z" stroke="currentColor" stroke-width="1.5"/><path d="M50 28V72M31 40L69 60M69 40L31 60" stroke="currentColor" stroke-width="2"/><circle cx="50" cy="50" r="26" stroke="currentColor" opacity=".45"/></svg></div>
 <strong>АРЕНА ДУШ</strong>
-<small>Открываем врата арены…</small>
+<small>ПРОБУЖДАЕМ ВАШ ОТРЯД</small>
 <div class="r13-boot-line"><i></i></div>
 </div>
 <div id="bg-overlay"></div>
@@ -36,7 +37,7 @@
 <div id="shockwave-fx"></div>
 <audio id="bg-music" loop="" preload="none"></audio>
 <!-- HEADER / TOP BAR -->
-<header class="text-center py-3 px-4 bg-slate-950/85 backdrop-filter backdrop-blur-md border-b border-slate-800/80 z-10 sticky top-0 shadow-2xl flex flex-col items-center justify-center relative">
+<header class="r82-command-header text-center py-3 px-4 bg-slate-950/85 backdrop-filter backdrop-blur-md border-b border-slate-800/80 z-10 sticky top-0 shadow-2xl flex flex-col items-center justify-center relative">
 <!-- Header controls -->
 <div class="r32-header-actions" id="header-left-actions">
 <button aria-label="Звук" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 p-2 rounded-xl text-xs flex items-center gap-1.5 transition transform active:scale-95 shadow-md" id="sound-toggle-btn" onclick="toggleAudioMute()" title="Звук" type="button">
@@ -53,7 +54,7 @@
 <span class="font-bold text-slate-300 truncate max-w-[80px]" id="vk-name">...</span>
 </div>
 <h1 class="title-font text-xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-red-500 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(239,68,68,0.4)]" id="header-title">
-            АРЕНА ДУШ: БИТВА МИРОВ
+            АРЕНА ДУШ
         </h1>
 <p class="text-slate-400 text-xs md:text-sm mt-0.5 font-bold tracking-widest uppercase" id="game-status">Жребий Первого Хода</p>
 <div class="mt-1.5 flex flex-wrap items-center justify-center gap-3">
@@ -65,6 +66,7 @@
 <span class="r413-mobile-round-status" id="r413-mobile-round-status" aria-live="polite"></span>
 </div>
 </div>
+<div class="r82-forces hidden" id="draft-rosters" aria-label="Количество бойцов"><div class="r82-team-count r82-team-one"><small id="draft-footer-p1-label">Команда 1</small><b id="p1-count">0/5</b></div><div class="r82-force-center"><span data-ui-icon="swords" data-icon-size="19"></span><small id="r82-force-label">ОТРЯДЫ</small></div><div class="r82-team-count r82-team-two"><b id="p2-count">0/5</b><small id="draft-footer-p2-label">Команда 2</small></div></div>
 <div class="hidden mt-2 text-xs font-semibold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-3 py-1 rounded-lg max-w-xl mx-auto shadow-md backdrop-blur-sm" id="location-banner">
 <span class="font-bold uppercase tracking-wider text-amber-400" id="location-name"></span><span class="r413-location-desktop-sep">: </span><span class="text-slate-300 text-[11px]" id="location-desc"></span><span class="r413-location-mobile-summary" id="r413-location-mobile-summary"></span><button class="r413-location-toggle" id="r413-location-toggle" type="button" onclick="toggleR413ArenaDetails()" aria-label="Подробнее об арене" aria-expanded="false">ⓘ</button>
 </div>
@@ -85,72 +87,31 @@
 <div class="r41-coach-copy"><small>УЧЕБНЫЙ МАТЧ</small><strong id="r41-coach-title">Следующий шаг</strong><p class="r41-coach-summary" id="r41-coach-summary"></p><button class="r41-coach-explain" id="r41-coach-explain" type="button" onclick="toggleR413CoachDetails()" aria-expanded="false">ПОЧЕМУ?</button><p id="r41-coach-text"></p></div>
 <button class="r41-coach-next hidden" id="r41-coach-next" type="button" onclick="r41CoachContinue()">ПРОДОЛЖИТЬ</button>
 </div>
-<section aria-label="Главное меню" class="menu-screen w-full flex flex-col items-center justify-center text-center" id="main-menu-screen">
-<div class="menu-ambient menu-ambient-a"></div>
-<div class="menu-ambient menu-ambient-b"></div>
-<div class="menu-content r16-hub-content">
-<div class="menu-kicker"><span data-ui-icon="swords" data-icon-size="16"></span> ТАКТИЧЕСКИЙ АВТОБАТЛЕР 5 × 5 <span data-ui-icon="swords" data-icon-size="16"></span></div>
-<div class="r16-hero-row">
-<div class="r16-brand-block">
-<div aria-hidden="true" class="menu-sigil"><span>魂</span></div>
-<h1 class="menu-title">АРЕНА ДУШ</h1>
-<p class="menu-subtitle">БИТВА МИРОВ</p>
-<p class="menu-lead">Соберите отряд из пяти бойцов, выберите Прайм-формы и проведите команду через серию последовательных дуэлей.</p>
-<div aria-label="Ключевые особенности" class="menu-stat-row">
-<span><b>75</b> бойцов</span>
-<span><b>5 × 5</b> драфт</span>
-<span><b>3</b> арены</span>
-<span>до <b>5</b> побед</span>
+<section aria-label="Главное меню" class="menu-screen r82-hub" id="main-menu-screen">
+<div class="r82-hub-top"><a class="r82-wordmark" href="#" onclick="event.preventDefault();showMainMenu()"><span data-ui-icon="prime" data-icon-size="25"></span><b>АРЕНА ДУШ<small>БИТВА МИРОВ</small></b></a><span class="r82-hub-edition">ДРАФТ · ПРАЙМ · PvP</span><button type="button" class="r82-icon-button" onclick="openAudioSettings()" aria-label="Настройки"><span data-ui-icon="settings" data-icon-size="22"></span></button></div>
+<div class="r82-hub-grid">
+<div class="r82-hero">
+<div class="r82-eyebrow"><i></i> ТАКТИЧЕСКАЯ КАРТОЧНАЯ АРЕНА</div>
+<h1 class="menu-title r82-hero-title">ПЯТЬ БОЙЦОВ.<br><em>ОДНА ПОБЕДА.</em></h1>
+<p class="menu-lead r82-hero-lead">Соберите отряд. Пробудите Прайм.<br>Победите на арене душ.</p>
+<div class="r82-hero-deck"><figure class="r82-hero-card r82-hero-card-0" aria-hidden="true"><img src="images/fighter_008.png" alt="" decoding="async" fetchpriority="high"><figcaption><small>ПЛАМЯ</small><b>Владыка Огненного Клинка</b></figcaption></figure><figure class="r82-hero-card r82-hero-card-1" aria-hidden="true"><img src="images/fighter_001.png" alt="" decoding="async" fetchpriority="high"><figcaption><small>ДУХОВНЫЙ КЛИНОК</small><b>Алый Жнец</b></figcaption></figure><figure class="r82-hero-card r82-hero-card-2" aria-hidden="true"><img src="images/fighter_002.png" alt="" decoding="async" fetchpriority="high"><figcaption><small>АБСОЛЮТНЫЙ ХЛАД</small><b>Дева Ледяной Бездны</b></figcaption></figure><div class="r82-deck-orbit"></div></div>
+<div class="r82-hero-stats"><span><b>75</b> бойцов</span><span><b>5 × 5</b> драфт</span><span><b>3</b> арены</span><span><b>PvP</b> онлайн</span></div>
 </div>
+<div class="r82-command r16-hub-panel">
+<div class="r82-profile r16-profile-strip"><div class="r16-profile-avatar"><img alt="" class="hidden" id="hub-vk-avatar"/><span id="hub-vk-fallback">SA</span></div><div class="r16-profile-copy"><small>ВАШ КОМАНДНЫЙ ЦЕНТР</small><b id="hub-player-name">Игрок</b><span data-player-title="">Рекрут Арены</span></div></div>
+<div class="r82-resources r19-hub-metrics"><button type="button" onclick="openFeaturePreview('rating')" title="Офлайн-рейтинг против ботов"><span data-ui-icon="rating" data-icon-size="18"></span><b id="hub-rating">800</b><small>ИИ · <span id="hub-rank">Новичок</span></small></button><button type="button" onclick="openEconomyInfo()" title="Монеты"><span data-ui-icon="coin" data-icon-size="18"></span><b data-coin-balance="" id="hub-coins">0</b><small>монеты</small></button><div title="Осколки оформления"><span data-ui-icon="shard" data-icon-size="18"></span><b id="hub-shards">0</b><small>осколки</small></div></div>
+<div class="r82-play-actions"><button type="button" class="menu-primary-btn r82-online-cta" onclick="openOnlineArena()"><span data-ui-icon="swords" data-icon-size="24"></span><span><b>ИГРАТЬ ОНЛАЙН</b><small>Подбор соперника · PvP-рейтинг</small></span><i>↗</i></button><button type="button" class="r82-offline-cta" onclick="startGameFromMenu()"><span data-ui-icon="play" data-icon-size="20"></span><span>БОТЫ И ИГРА ВДВОЁМ</span><i>›</i></button></div>
+<div class="r82-command-label"><span>КОЛЛЕКЦИЯ И ПРОГРЕСС</span><i></i></div>
+<div class="r82-hub-tools r16-hub-grid">
+<button type="button" class="menu-secondary-btn" onclick="openFeaturePreview('bestiary')"><span data-ui-icon="bestiary" data-icon-size="22"></span><b>Бойцы</b><small id="hub-bestiary-count">0/75</small></button>
+<button type="button" class="menu-secondary-btn" onclick="openShop()"><span data-ui-icon="shop" data-icon-size="22"></span><b>Магазин</b><small id="hub-shop-count">9/48</small></button>
+<button type="button" class="menu-secondary-btn" onclick="openFeaturePreview('achievements')"><span data-ui-icon="trophy" data-icon-size="22"></span><b>Достижения</b><small id="hub-achievement-count">0/50</small></button>
+<button type="button" class="menu-secondary-btn" onclick="openFeaturePreview('profile')"><span data-ui-icon="profile" data-icon-size="22"></span><b>Профиль</b><small>статистика</small></button>
 </div>
-<div aria-label="Командный центр" class="r16-hub-panel">
-<div class="r16-profile-strip">
-<div aria-hidden="true" class="r16-profile-avatar">
-<img alt="" class="hidden" id="hub-vk-avatar"/>
-<span id="hub-vk-fallback">VK</span>
-</div>
-<div class="r16-profile-copy">
-<small>КОМАНДНЫЙ ЦЕНТР</small>
-<b id="hub-player-name">Игрок</b>
-<span><b data-player-title="">Рекрут Арены</b> · прогресс и коллекция синхронизируются между вашими устройствами.</span>
-</div>
-<div class="r19-hub-metrics">
-<div class="r19-hub-rating ui-resource ui-resource--rating" data-resource="rating" title="Офлайн-рейтинг против ИИ">
-<i data-ui-icon="rating" data-icon-size="24"></i><b id="hub-rating">800</b><span id="hub-rank">Новичок</span>
-</div>
-<button class="r20-hub-coins ui-resource ui-resource--coin" data-resource="coins" onclick="openEconomyInfo()" title="Монеты" type="button">
-<i data-ui-icon="coin" data-icon-size="24"></i><b data-coin-balance="" id="hub-coins">0</b><span>монеты</span>
-</button>
-<div class="r16-hub-currency ui-resource ui-resource--shard" data-resource="shards" title="Осколки оформления">
-<i data-ui-icon="shard" data-icon-size="24"></i><b id="hub-shards">0</b><span>осколки</span>
-</div>
-</div>
-</div>
-<div class="menu-actions r16-menu-actions">
-<button class="menu-primary-btn" onclick="startGameFromMenu()"><span>ИГРАТЬ</span><span data-ui-icon="play" data-icon-size="20"></span></button>
-
-<div class="menu-action-grid r16-hub-grid">
-<button class="menu-secondary-btn" onclick="openFeaturePreview('profile')"><span data-ui-icon="profile" data-icon-size="22"></span><span>Профиль</span><small>готово</small></button>
-<button class="menu-secondary-btn" onclick="openFeaturePreview('rating')"><span data-ui-icon="rating" data-icon-size="22"></span><span>Рейтинг</span><small>Elo</small></button>
-<button class="menu-secondary-btn" onclick="openFeaturePreview('bestiary')"><span data-ui-icon="bestiary" data-icon-size="22"></span><span>Бестиарий</span><small id="hub-bestiary-count">0/75</small></button>
-<button class="menu-secondary-btn" onclick="openShop()"><span data-ui-icon="shop" data-icon-size="22"></span><span>Магазин</span><small id="hub-shop-count">9/48</small></button>
-<button class="menu-secondary-btn" onclick="openFeaturePreview('achievements')"><span data-ui-icon="trophy" data-icon-size="22"></span><span>Достижения</span><small id="hub-achievement-count">0/50</small></button>
-<button class="menu-secondary-btn" onclick="openRules(false)"><span data-ui-icon="rules" data-icon-size="22"></span><span>Правила</span><small>справка</small></button>
-<button class="menu-secondary-btn" onclick="openR41Tutorial(false)"><span data-ui-icon="target" data-icon-size="22"></span><span>Обучение</span><small>практика</small></button>
-<button class="menu-secondary-btn" onclick="openFutureUpdates()"><span data-ui-icon="future" data-icon-size="22"></span><span>Будущее</span><small>новые режимы</small></button>
-<button class="menu-secondary-btn" onclick="openAudioSettings()"><span data-ui-icon="settings" data-icon-size="22"></span><span>Настройки</span><small>звук</small></button>
-</div>
-<div class="r16-hub-footer-actions r20-hub-footer-actions">
-<button class="r16-quick-btn r20-rewarded-btn" data-rewarded-button="" onclick="claimRewardedCoins()"><span data-ui-icon="reward" data-icon-size="22"></span><b>+100 монет</b><small data-rewarded-status="">rewarded · 3/3</small></button>
-<button class="r16-quick-btn" onclick="toggleAudioMute()"><span id="menu-sound-icon" data-ui-icon="volume" data-icon-size="22"></span><b id="menu-sound-label">Звук включён</b></button>
-</div>
-</div>
-</div>
-</div>
-<div aria-label="Этапы матча" class="menu-flow">
-<span>Жребий</span><i>›</i><span>Драфт</span><i>›</i><span>Козыри</span><i>›</i><span>Арена</span><i>›</i><span>Битва</span>
-</div>
-</div>
+<div class="r82-hub-help"><button type="button" onclick="openR41Tutorial(false)"><span data-ui-icon="target" data-icon-size="18"></span>Обучение</button><button type="button" onclick="openRules(false)"><span data-ui-icon="rules" data-icon-size="18"></span>Правила</button><button type="button" onclick="openFutureUpdates()" aria-label="Будущие обновления"><span data-ui-icon="future" data-icon-size="18"></span></button></div>
+<div class="r82-hub-footer r16-hub-footer-actions"><button type="button" data-rewarded-button="" onclick="claimRewardedCoins()"><span data-ui-icon="reward" data-icon-size="18"></span><b>+100 монет</b><small data-rewarded-status="">Награда</small></button><button type="button" onclick="toggleAudioMute()" aria-label="Переключить звук"><span id="menu-sound-icon" data-ui-icon="volume" data-icon-size="20"></span><span id="menu-sound-label">Звук</span></button></div>
+</div></div>
+<div class="r82-hub-bottom"><span>ВАШ ХОД РЕШАЕТ БОЙ</span><button type="button" onclick="openR41Tutorial(false)">Впервые на арене? Пройти обучение →</button><span>СЕРИЯ ДО 5 ПОБЕД</span></div>
 </section>
 <!-- INITIATIVE DRAFT PHASE -->
 <div class="w-full hidden flex-col items-center text-center my-auto py-8 transition-all duration-500" id="initiative-phase">
@@ -307,16 +268,7 @@
 </div>
 </div>
 </main>
-<footer class="hidden fixed bottom-0 left-0 w-full bg-slate-950/90 backdrop-blur-md border-t border-slate-800/80 p-3.5 flex justify-between text-sm z-20 shadow-2xl" id="draft-rosters">
-<div class="w-1/2 pr-4 border-r border-slate-800 flex justify-between items-center">
-<span class="text-blue-400 font-bold tracking-widest uppercase text-xs sm:text-sm" id="draft-footer-p1-label">Команда 1</span>
-<span class="bg-slate-900 border border-blue-900/50 text-blue-300 px-3 py-1 rounded-lg font-mono font-bold text-xs sm:text-sm" id="p1-count">0/5</span>
-</div>
-<div class="w-1/2 pl-4 flex justify-between items-center">
-<span class="text-orange-400 font-bold tracking-widest uppercase text-xs sm:text-sm" id="draft-footer-p2-label">Команда 2</span>
-<span class="bg-slate-900 border border-orange-900/50 text-orange-300 px-3 py-1 rounded-lg font-mono font-bold text-xs sm:text-sm" id="p2-count">0/5</span>
-</div>
-</footer>
+
 <div aria-labelledby="game-mode-title" aria-modal="true" class="modal-layer hidden" id="game-mode-modal" role="dialog">
 <div class="modal-card r16-mode-modal-card">
 <div class="modal-head">
@@ -655,5 +607,5 @@
 
 
 
-<script src="js/icon_system.js"></script><script src="js/ui_shell.js"></script><script src="js/layout_engine.js"></script><script src="js/performance_engine.js"></script><script src="js/game.js?v=r81.1"></script><script src="r25-canon-model.js"></script><script src="js/battle_explainer.js"></script><script src="js/presentation_engine.js?v=r81.1"></script><script src="data/visual_profiles.js?v=r81.1"></script><script src="js/battle_scene_r81.js?v=r81.1"></script><script src="js/online_config.js"></script><script type="module" src="js/online_client.mjs?v=r81.1"></script></body>
+<script src="js/icon_system.js"></script><script src="js/ui_shell.js"></script><script src="js/layout_engine.js"></script><script src="js/performance_engine.js"></script><script src="js/game.js?v=r82.0"></script><script src="r25-canon-model.js"></script><script src="js/battle_explainer.js"></script><script src="js/presentation_engine.js?v=r82.0"></script><script src="data/visual_profiles.js?v=r82.0"></script><script src="js/battle_scene_r81.js?v=r82.0"></script><script src="js/online_config.js"></script><script type="module" src="js/online_client.mjs?v=r82.0"></script></body>
 </html>

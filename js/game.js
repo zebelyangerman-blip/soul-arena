@@ -855,11 +855,12 @@
             syncR413MobileHud(screen);
             const footer = document.getElementById('draft-rosters');
             if (footer) {
-                const showFooter = screen === 'draft';
+                const showFooter = ['draft','bonus','location','battle','end'].includes(screen);
                 footer.classList.toggle('hidden', !showFooter);
                 footer.classList.toggle('flex', showFooter);
             }
             updatePhaseRail(screen);
+            updateFooterCounters();
             if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => animateCurrentScreen(screen));
             else animateCurrentScreen(screen);
         }
@@ -1956,9 +1957,10 @@
                 let actionText = active ? 'Экипировано' : isOwned ? 'Экипировать' : item.achievementOnly ? 'Только достижение' : item.price === 0 ? 'Получить' : `${item.price} монет`; const actionIcon = active ? 'check' : isOwned ? 'spark' : item.achievementOnly ? 'trophy' : item.price === 0 ? 'gift' : 'coin';
                 const disabled = active || (item.achievementOnly && !isOwned) ? 'disabled' : '';
                 const affordability = (!isOwned && !item.achievementOnly && item.price>0 && !canBuy) ? ' is-expensive' : '';
-                card.innerHTML = `<div class="shop-item-preview r21-item-preview"><span>${uiIcon(shopItemIcon(item),44)}</span><i>${uiIcon(shopCategoryIcon(item.category),28)}</i></div><div class="shop-item-body"><div class="r21-item-meta"><span class="r21-rarity">${rarity}</span>${item.achievementOnly?'<em>НАГРАДА</em>':active?'<em>ВЫБРАНО</em>':isOwned?'<em>В КОЛЛЕКЦИИ</em>':''}</div><h3>${item.name}</h3><p>${item.desc}</p><button class="shop-item-btn${affordability}" ${disabled}>${uiIcon(actionIcon,17)}${actionText}</button></div>`;
+                card.innerHTML = `<div class="shop-item-preview r21-item-preview"><span>${uiIcon(shopItemIcon(item),44)}</span><i>${uiIcon(shopCategoryIcon(item.category),28)}</i></div><div class="shop-item-body"><div class="r21-item-meta"><span class="r21-rarity">${rarity}</span>${item.achievementOnly?'<em>НАГРАДА</em>':active?'<em>ВЫБРАНО</em>':isOwned?'<em>В КОЛЛЕКЦИИ</em>':''}</div><h3>${item.name}</h3><p>${item.desc}</p><button class="shop-item-btn${affordability}" ${disabled}>${uiIcon(actionIcon,17)}${actionText}</button>${item.category==='primeEffect'?'<button type="button" class="r82-prime-preview">Посмотреть эффект</button>':''}</div>`;
                 const btn = card.querySelector('button');
                 if (btn && !active && !(item.achievementOnly && !isOwned)) btn.addEventListener('click', () => purchaseOrEquipShopItem(item.id));
+                card.querySelector('.r82-prime-preview')?.addEventListener('click',()=>window.SOUL_ARENA_VISUALS?.activatePrime?.({id:1,isPrime:true},{cosmetic:item.cssKey,preview:true}));
                 return card;
             };
             const chunkSize=12;
@@ -4042,8 +4044,11 @@
         }
 
         function updateFooterCounters() {
-            document.getElementById('p1-count').innerText = `${p1Team.length}/5`;
-            document.getElementById('p2-count').innerText = `${p2Team.length}/5`;
+            const battle = ['battle','end'].includes(document.body.dataset.screen);
+            document.getElementById('p1-count').innerText = `${battle ? p1Team.filter(c=>c.state<4).length : p1Team.length}/5`;
+            document.getElementById('p2-count').innerText = `${battle ? p2Team.filter(c=>c.state<4).length : p2Team.length}/5`;
+            const label=document.getElementById('r82-force-label');
+            if(label)label.textContent=battle?'В СТРОЮ':'ОТРЯДЫ';
         }
 
         function startBonusPhase() {
@@ -4084,7 +4089,7 @@
             renderBonusGrid();
             syncCpuPresentation('prime-study', `ИИ изучает, кому активировать Прайм · ${count} ${count === 1 ? 'выбор' : 'выбора'}`);
 
-            const revealNext = (index) => {
+            const revealNext = async (index) => {
                 cpuPresentationTimer = 0;
                 if (generation !== cpuDecisionGeneration) return;
                 if (!isCpuMode() || currentBonusPlayer !== CPU_PLAYER || Number(expectedTurn) !== Number(bonusTurnsCount)) return;
@@ -4105,6 +4110,8 @@
                     if (card) card.classList.add('cpu-choice-preview', 'r31-prime-reveal');
                     syncCpuPresentation('preview', char ? `Прайм активирован: ${char.name}` : 'ИИ активирует Прайм…');
                     playSpiritBurst();
+                    if(char) await window.SOUL_ARENA_VISUALS?.activatePrime?.(char,{cosmetic:'standard'});
+                    if(generation !== cpuDecisionGeneration)return;
                     if (r41TutorialMode && char) r41ExplainCpuPrime(char, index + 1, count);
                     cpuPresentationTimer = setTimeout(() => revealNext(index + 1), r31VisualDelay(R31_CPU_TIMING.primeRevealMinMs, R31_CPU_TIMING.primeRevealMaxMs));
                     return;
@@ -4215,7 +4222,7 @@
             playSpiritBurst();
             document.getElementById('bonus-points').innerText = availableBonusPoints;
             renderBonusGrid();
-            window.SOUL_ARENA_VISUALS?.phase?.('prime',document,[char.id]);
+            if(char.isPrime) window.SOUL_ARENA_VISUALS?.activatePrime?.(char);
             if (r41TutorialMode) r41PrimeSelectionFeedback(char);
         }
 
@@ -4234,6 +4241,8 @@
         }
 
         function startLocationPhase() {
+            r82ArenaSpinning=false;
+            r82PendingArenaId=null;
             setUiScreen('location');
             document.getElementById('bonus-phase').classList.add('hidden');
             document.getElementById('game-status').innerText = "Выбор Локации";
@@ -4261,16 +4270,23 @@
             id: String(arena.id), name: String(arena.publicName), iconName:'arena', color: String(arena.colorClass || 'text-slate-300')
         })));
 
+        let r82ArenaSpinning = false;
+        let r82PendingArenaId = null;
         function spinArenaRoulette() {
+            if(r82ArenaSpinning || document.body.dataset.screen!=='location')return;
+            r82ArenaSpinning=true;
             if (window.SOUL_ARENA_VISUALS?.arenaReveal) {
                 document.getElementById('spin-roulette-btn').classList.add('hidden');
                 const display = document.getElementById('roulette-display');
                 display.classList.remove('hidden','scale-95','opacity-0');
                 display.classList.add('flex','scale-100','opacity-100');
-                const finalIndex = r41TutorialMode ? Math.max(0, arenasForRoulette.findIndex(a => a.id === R41_TUTORIAL_ARENA_ID)) : PURE_CANON_DRAFT_ENGINE.pickArenaIndex(arenasForRoulette.length);
+                const finalIndex = r82PendingArenaId ? arenasForRoulette.findIndex(a=>a.id===r82PendingArenaId) : r41TutorialMode ? Math.max(0, arenasForRoulette.findIndex(a => a.id === R41_TUTORIAL_ARENA_ID)) : PURE_CANON_DRAFT_ENGINE.pickArenaIndex(arenasForRoulette.length);
+                r82PendingArenaId=arenasForRoulette[finalIndex].id;
                 const session = window.SOUL_ARENA_VISUALS.session;
-                window.SOUL_ARENA_VISUALS.arenaReveal(arenasForRoulette[finalIndex].id).then(()=>{
-                    if(session===window.SOUL_ARENA_VISUALS.session)selectLocation(arenasForRoulette[finalIndex].id);
+                window.SOUL_ARENA_VISUALS.arenaReveal(arenasForRoulette[finalIndex].id).then(result=>{
+                    r82ArenaSpinning=false;
+                    if(result?.cancelled && session===window.SOUL_ARENA_VISUALS.session && document.body.dataset.screen==='location'){document.getElementById('spin-roulette-btn').classList.remove('hidden');display.classList.add('hidden');}
+                    if(!result?.cancelled && document.body.dataset.screen==='location' && session===window.SOUL_ARENA_VISUALS.session)selectLocation(arenasForRoulette[finalIndex].id);
                 });
                 return;
             }
@@ -4532,13 +4548,7 @@
         }
 
         function updateBattleRosters() {
-            const r81Anchor = document.getElementById('fight-btn');
-            let r81Counts = document.getElementById('r81-local-forces');
-            if (r81Anchor && !r81Counts) {
-                r81Counts = document.createElement('div'); r81Counts.id = 'r81-local-forces'; r81Counts.className = 'r81-force-counts';
-                r81Anchor.parentNode.insertBefore(r81Counts,r81Anchor);
-            }
-            if (r81Counts) r81Counts.innerHTML = '<span>' + getPlayerLabel(1) + ' <b>' + p1Team.filter(c=>c.state<4).length + '</b></span><i>В СТРОЮ</i><span><b>' + p2Team.filter(c=>c.state<4).length + '</b> ' + getPlayerLabel(2) + '</span>';
+            updateFooterCounters();
 
             renderRoster(p1Team, 'p1-roster', 1);
             renderRoster(p2Team, 'p2-roster', 2);

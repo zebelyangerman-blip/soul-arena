@@ -1,4 +1,4 @@
-Third-party libraries bundled with Bleach R81.1
+Third-party libraries bundled with Bleach R82
 
 PixiJS 8.22.0: https://github.com/pixijs/pixijs — MIT, see PixiJS-MIT.txt
 Anime.js 4.5.0: https://github.com/juliangarnier/anime — MIT, see AnimeJS-MIT.txt
