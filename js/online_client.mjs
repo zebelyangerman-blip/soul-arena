@@ -33,19 +33,26 @@ const configured = String(window.SOUL_ARENA_ONLINE_ENDPOINT || '').trim().replac
 const endpoint = configured || (local ? 'http://127.0.0.1:8787' : '');
 let token = null, socket = null, room = null, view = null, reconnectTimer = null;
 let connecting = false, closed = false, pending = false, primeSelection = new Set(), battleSelection = null, status = '';
-let queueing = false, queueSince = null, queueTimer = null, profile = null, leaderboard = null;
+let queueing = false, queueSince = null, queueTimer = null, profile = null, leaderboard = null, queuePolicy = null;
 let leaderboardIndexing=false;
 let presence = null, secondTimer = null, clockOffset = 0;
 let duelExpanded = false, lastRenderedRoom = null, lastRenderedVersion = -1;
-const timing={http:9000,connect:9000,ack:7000,heartbeat:15000,...(local?window.SOUL_ARENA_NETWORK_TIMING||{}:{})};
+const timing={http:9000,profile:3500,profileAuth:4500,profileRetry:1000,profileRetryMax:15000,queuePoll:5000,connect:9000,ack:7000,heartbeat:15000,...(local?window.SOUL_ARENA_NETWORK_TIMING||{}:{})};
 const actionKey='soulArenaPendingActionR81';
 const authStorageKey='soulArenaSessionR81';
+const profileStorageKey='soulArenaVerifiedProfileR83';
 const launchParams=new URLSearchParams(location.search);
 const launchIdentity=launchParams.get('logged_user_id')?'ok:'+launchParams.get('logged_user_id'):
   launchParams.get('vk_user_id')?(launchParams.get('vk_client')==='ok'?'ok:':'vk:')+launchParams.get('vk_user_id'):
   local&&launchParams.get('debugPlayer')?'vk:'+launchParams.get('debugPlayer'):null;
 let authFlight=null,expiresAt=0,profileFlight=null,profileRetryTimer=null;
+let profileFresh=false,profileRevision=0;
 try{const saved=JSON.parse(sessionStorage.getItem(authStorageKey)||'null');if(saved?.endpoint===endpoint && launchIdentity && saved.userId===launchIdentity && saved.expiresAt>Date.now()+30_000){token=saved.token;expiresAt=saved.expiresAt;}}catch{}
+try{
+  const saved=JSON.parse(localStorage.getItem(profileStorageKey)||'null');
+  if(launchIdentity && saved?.endpoint===endpoint && saved.userId===launchIdentity &&
+    Number.isFinite(saved.verifiedAt) && saved.verifiedAt<=Date.now() && Date.now()-saved.verifiedAt<7*86400_000 && validProfile(saved.profile))profile=saved.profile;
+}catch{}
 let socketTimer=null,heartbeatTimer=null,lastSocketMessage=0,reconnectAttempt=0;
 let pendingAction=null,actionTimer=null,queueSocket=null,queueSocketTimer=null,queueHeartbeat=null;
 let enteringRoom=false,profileRetries=0,queueGeneration=0;
@@ -60,6 +67,19 @@ function setError(value) {
   ui.error.classList.toggle('hidden', !value);
 }
 function isOpen() { return !root.classList.contains('hidden'); }
+function validProfile(value) {
+  return value && Number.isSafeInteger(value.rating) && value.rating>=0 &&
+    Number.isSafeInteger(value.wins) && value.wins>=0 && Number.isSafeInteger(value.losses) && value.losses>=0 &&
+    (value.history===undefined || Array.isArray(value.history)) &&
+    (!value.playerId || !launchIdentity || value.playerId===launchIdentity);
+}
+function acceptProfile(value) {
+  if(!validProfile(value))throw Object.assign(new Error('Сервер вернул некорректный PvP-профиль'),{retryable:true});
+  profile={...value};profileFresh=true;profileRevision++;profileRetries=0;
+  clearTimeout(profileRetryTimer);profileRetryTimer=null;
+  if(launchIdentity)try{localStorage.setItem(profileStorageKey,JSON.stringify({endpoint,userId:launchIdentity,verifiedAt:Date.now(),profile}));}catch{}
+  return profile;
+}
 function isMyTurn(match, seat) { return match.turn === seat; }
 function own(match, seat) { return match.teams[seat] || []; }
 function opponent(match, seat) { return match.teams[1-seat] || []; }
@@ -76,12 +96,12 @@ function rankTitle(rating) {
 }
 function renderRankProgress(value) {
   if(!value)return '';
-  const score=Number(value.rating)||800;
+  const score=Number(value.rating ?? 800);
   let index=0;for(let i=1;i<PVP_RANKS.length;i++)if(score>=PVP_RANKS[i].floor)index=i;
   const current=PVP_RANKS[index],next=PVP_RANKS[index+1];
   const percent=next?Math.max(0,Math.min(100,(score-current.floor)/(next.floor-current.floor)*100)):100;
   return `<div class="r82-rank-progress"><div><b>${escapeHtml(current.title)}</b><small>${next?`До «${escapeHtml(next.title)}»: ${Math.max(0,next.floor-score)} Elo`:'Высшее звание арены'}</small></div><div class="r82-rank-track" role="progressbar" aria-label="Прогресс звания PvP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(percent)}"><i style="width:${percent}%"></i></div></div>
-    <details class="r82-rank-list"><summary>Все звания PvP</summary><div>${PVP_RANKS.map(r=>`<span class="${r===current?'is-current':''}"><b>${r.floor}</b>${escapeHtml(r.title)}</span>`).join('')}</div><p>Рейтинг меняется за завершённую рейтинговую серию до пяти побед. При равном Elo победа даёт +16, поражение −16. Комнаты с другом и реванши не изменяют PvP-рейтинг.</p></details>`;
+    <details class="r82-rank-list"><summary>Все звания PvP</summary><div>${PVP_RANKS.map(r=>`<span class="${r===current?'is-current':''}"><b>${r.floor}</b>${escapeHtml(r.title)}</span>`).join('')}</div><p>Рейтинг меняется за рейтинговую серию до пяти побед. При равном Elo: 5:4 — +16, 5:3 — +18, 5:2 — +20, 5:1 — +22, 5:0 — +24. Соперник теряет столько же. Сдача и тайм-аут — без бонуса за счёт. Комнаты с другом и реванши не изменяют PvP-рейтинг.</p></details>`;
 }
 function portrait(id) {
   const image=fighter(id)?.public?.portrait;
@@ -154,10 +174,11 @@ function renderLobby() {
   const savedCode=root.querySelector('#online-room-code')?.value;
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem r82-online-gate" aria-hidden="true"><svg width="35" height="35" viewBox="0 0 40 40" fill="none"><path d="M20 4L32 12V28L20 36L8 28V12Z" stroke="currentColor" stroke-width="1.5"/><path d="M20 10V30M12 16L28 24M28 16L12 24" stroke="currentColor" stroke-width="2"/></svg></div><h2>Найти соперника</h2>
-    <p>Поиск подбирает игрока с разницей рейтинга не больше 200 очков. Рейтинг меняется после серии до пяти побед: против равного соперника это +16 за победу или −16 за поражение.</p>
+    <p>Поиск начинается в пределах ±200 рейтинга. Каждые 15 секунд диапазон расширяется: ±300 → ±400 → ±500 → ±600. Чем увереннее победа в полной серии, тем больше рейтинг: при равном Elo от +16 за 5:4 до +24 за 5:0.</p>
     <div class="online-my-rating">Ваш PvP-рейтинг <b>${profile?.rating ?? '—'}</b>
       ${profile?`<span class="online-rank-title">${rankTitle(profile.rating)}</span>`:''}
-      <small>${profile?`${profile.wins} побед · ${profile.losses} поражений`: 'Появится после входа через VK/ОК'}</small></div>
+      <small>${profile?`${profile.wins} побед · ${profile.losses} поражений`: 'Появится после входа через VK/ОК'}</small>
+      ${profile?`<small data-profile-freshness>${profileFresh?'Подтверждено сервером':'Сохранённые данные · сверяем с сервером'}</small>`:''}</div>
     ${renderRankProgress(profile)}
     ${profile?.history?.length?`<div class="online-history"><strong>Последние серии</strong>${profile.history.slice(0,3).map(x=>`<span>${x.won?'Победа':'Поражение'} · ${escapeHtml(formatPlayer(x.opponent))} <b>${x.delta>0?'+':''}${x.delta}</b></span>`).join('')}</div>`:''}
     ${endpoint?button('search','ИСКАТЬ МАТЧ'): '<p class="online-note">Адрес сервера пока не указан. После публикации Worker впишите его в <code>js/online_config.js</code>.</p>'}
@@ -191,7 +212,8 @@ function renderQueue() {
   if (!isOpen() || !queueing) return;
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem online-search-icon">⚔️</div><h2>Ищем соперника</h2>
-    <p>Система ищет тех, кто тоже нажал «Искать матч» и отличается по рейтингу не больше чем на 200 очков. Если никого нет, поиск завершится через 90 секунд.</p>
+    <p>Текущий диапазон: <b data-queue-gap>±${Number(queuePolicy?.ratingGap)||200}</b> Elo. Подбираем ближайшего по рейтингу игрока; разница должна подходить обоим. Если никого нет, поиск завершится через 90 секунд.</p>
+    <p class="online-note" data-queue-expansion>${queueExpansionText()}</p>
     <p class="online-search-clock">В поиске: <b data-queue-clock>00:00</b></p>
     ${button('cancel_search','Отменить поиск',false,'online-btn-secondary')}
     ${button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small')}
@@ -205,11 +227,18 @@ function updateClocks() {
     const elapsed=Math.max(0,Math.floor((Date.now()+clockOffset-queueSince)/1000));
     queueClock.textContent=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
   }
+  const expansion=root.querySelector('[data-queue-expansion]');
+  if(expansion)expansion.textContent=queueExpansionText();
   const turnClock=root.querySelector('[data-turn-clock]');
   if(turnClock && view?.match.turnDeadlineAt) {
     const left=Math.max(0,Math.ceil((view.match.turnDeadlineAt-Date.now()-clockOffset)/1000));
     turnClock.textContent=`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;
   }
+}
+function queueExpansionText() {
+  if(!queuePolicy?.nextExpansionAt)return queuePolicy?.ratingGap>=600?'Максимальный диапазон поиска: ±600 Elo.':'Проверяем очередь игроков…';
+  const left=Math.max(0,Math.ceil((queuePolicy.nextExpansionAt-Date.now()-clockOffset)/1000));
+  return left?`Расширение диапазона через ${left} сек.`:'Сверяем расширенный диапазон с сервером…';
 }
 function renderMatch() {
   if (!view || !isOpen()) return;
@@ -293,7 +322,7 @@ function renderMatch() {
       series&&m.lastAction?.type==='surrender'?(won?'Соперник сдался.':'Вы сдались.') : '';
     const ratingText=!m.ranked||!series?'':!m.ratingFinalized?
       '<p>Сервер сохраняет результат серии и рейтинг…</p>':result?.rated?
-      `<div class="online-result-rating">Ваш PvP-рейтинг: <b>${result.after[seat]}</b> <strong>${delta>0?'+':''}${delta}</strong><span class="online-rank-title">${rankTitle(result.after[seat])}</span></div>`:
+      `<div class="online-result-rating">Ваш PvP-рейтинг: <b>${result.after[seat]}</b> <strong>${delta>0?'+':''}${delta}</strong><span class="online-rank-title">${rankTitle(result.after[seat])}</span></div>${won&&result.bonus>0?`<p>Бонус за уверенную победу: +${result.bonus} Elo уже включён в итог.</p>`:''}`:
       '<p>Повторная встреча: рейтинг не изменился.</p>';
     body=`<div class="online-focus online-finish"><span class="online-step">${series?'СЕРИЯ ДО ПЯТИ ПОБЕД':'МАТЧ'}</span>
       <h2>${won?'Победа!':'Поражение'}</h2><p>${reason||(series?'Серия завершена.':'Матч завершён. Следующий начнётся, когда оба игрока будут готовы.')}</p>
@@ -343,43 +372,44 @@ function renderMatch() {
   updateClocks();
 }
 
-async function requestApi(path,payload,authorized,method) {
+async function requestApi(path,payload,authorized,method,options={}) {
   const stablePayload={...(payload||{})};
   if(path==='/room/create')stablePayload.requestId ||= requestId();
-  let renewed=false;
-  for(let attempt=0;attempt<2;attempt++) {
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timing.http);
+  let renewed=false;const attempts=options.attempts??2;
+  for(let attempt=0;attempt<attempts;attempt++) {
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),options.timeout??timing.http);
     try {
       const headers={'Content-Type':'application/json',...(authorized?{Authorization:`Bearer ${token}`}:{})};
       const response=await fetch(endpoint+path,{method,headers,signal:controller.signal,...(method==='POST'?{body:JSON.stringify(stablePayload)}:{})});
       let result;try{result=await response.json();}catch{throw Object.assign(new Error('Сервер вернул непонятный ответ'),{retryable:true});}
       if(!response.ok) {
         if(response.status===401 && authorized && !renewed) {
-          renewed=true;clearTimeout(timer);await authenticate(true);attempt--;continue;
+          renewed=true;clearTimeout(timer);await authenticate(true,options);attempt--;continue;
         }
-        throw Object.assign(new Error(result.error||'Сервис временно недоступен'),{status:response.status,code:result.code,retryable:response.status===429||response.status>=500});
+        throw Object.assign(new Error(result.error||'Сервис временно недоступен'),{status:response.status,code:result.code,retryAfterMs:result.retryAfterMs,retryable:response.status===429||response.status>=500});
       }
       return result;
     }catch(error){
       const aborted=error.name==='AbortError';
       if(aborted)error=Object.assign(new Error('Сервер не ответил вовремя. Проверяем подключение.'),{retryable:true});
       if(error instanceof TypeError)error=Object.assign(new Error('Нет связи с сервером. Проверьте интернет.'),{retryable:true});
-      if(attempt===1 || !error.retryable)throw error;
+      if(attempt===attempts-1 || !error.retryable || error.code==='SERVER_BUSY')throw error;
       clearTimeout(timer);await pause(450+Math.random()*350);
     }finally{clearTimeout(timer);}
   }
 }
-async function api(path,payload,authorized=true){return requestApi(path,payload,authorized,'POST');}
-async function apiGet(path){return requestApi(path,null,true,'GET');}
-async function authenticate(force = false) {
+async function api(path,payload,authorized=true,options={}){return requestApi(path,payload,authorized,'POST',options);}
+async function apiGet(path,options={}){return requestApi(path,null,true,'GET',options);}
+async function authenticate(force = false,options={}) {
   if (token && !force && (!expiresAt || expiresAt>Date.now()+30_000))return;
   if(authFlight)return authFlight;
   authFlight=(async()=>{
     const params=new URLSearchParams(location.search);
     const debugPlayer=local&&/^\d+$/.test(params.get('debugPlayer')||'')?params.get('debugPlayer'):undefined;
-    const result=await api('/session',{launch:location.search,...(debugPlayer?{debugPlayer}:{})},false);
+    const result=await api('/session',{launch:location.search,includeProfile:true,...(debugPlayer?{debugPlayer}:{})},false,options);
     token=result.token;expiresAt=result.expiresAt||Date.now()+11*3600_000;
-    if(launchIdentity)sessionStorage.setItem(authStorageKey,JSON.stringify({token,expiresAt,endpoint,userId:result.userId||launchIdentity}));
+    if(launchIdentity)try{sessionStorage.setItem(authStorageKey,JSON.stringify({token,expiresAt,endpoint,userId:result.userId||launchIdentity}));}catch{}
+    if(result.profile && validProfile(result.profile))acceptProfile(result.profile);
   })();
   try{return await authFlight;}finally{authFlight=null;}
 }
@@ -387,24 +417,33 @@ async function refreshProfile() {
   if(!endpoint) return;
   if(profileFlight)return profileFlight;
   profileFlight=(async()=>{
-    await authenticate();const result=await apiGet('/rating/me');
-    profile=result;profileRetries=0;
-    if(isOpen() && !view && !queueing){renderLobby();setStatus('Готово к поиску соперника');setError('');}
+    const revision=profileRevision;profileFresh=false;
+    await authenticate(false,{timeout:timing.profileAuth,attempts:1});
+    const result=profileFresh && profileRevision!==revision?profile:
+      acceptProfile(await apiGet('/rating/me',{timeout:timing.profile,attempts:1}));
+    if(isOpen() && !view && !queueing && !pending){renderLobby();setStatus('Готово к поиску соперника');setError('');}
     return result;
   })();
   try{return await profileFlight;}finally{profileFlight=null;}
 }
 function loadProfile() {
-  clearTimeout(profileRetryTimer);setStatus('Проверяем ваш PvP-профиль…');
+  clearTimeout(profileRetryTimer);profileRetryTimer=null;
+  if(!endpoint || closed || !isOpen() || view || queueing || pending)return;
+  profileFresh=false;renderLobby();setStatus(profile?'Сверяем ваш PvP-профиль с сервером…':'Проверяем ваш PvP-профиль…');
   refreshProfile().catch(error=>{
     if(closed || !isOpen() || view || queueing)return;
-    setError(error.message);setStatus('Профиль временно недоступен');
-    if(error.retryable && profileRetries++<2)profileRetryTimer=setTimeout(loadProfile,1200*profileRetries);
+    renderLobby();setError(error.message);
+    setStatus(error.retryable?'Профиль временно недоступен · восстановим автоматически':'Перезапустите игру через VK или ОК для проверки профиля');
+    if(error.retryable && !profileRetryTimer) {
+      const backoff=Math.min(timing.profileRetryMax,timing.profileRetry*2**Math.min(profileRetries++,4));
+      const delay=Math.max(backoff,Number(error.retryAfterMs)||0)+(local?0:Math.random()*300);
+      profileRetryTimer=setTimeout(()=>{profileRetryTimer=null;if(!document.hidden)loadProfile();},delay);
+    }
   });
 }
 function stopQueue() {
   queueGeneration++;
-  queueing=false;queueSince=null;
+  queueing=false;queueSince=null;queuePolicy=null;
   clearTimeout(queueTimer);queueTimer=null;
   sessionStorage.removeItem(searchKey);
   clearTimeout(queueSocketTimer);clearInterval(queueHeartbeat);queueSocket?.close(1000,'Search complete');queueSocket=null;
@@ -418,11 +457,15 @@ async function handleQueue(response) {
     await enterRoom(response.room,false);
   } else if(response.status==='waiting') {
     queueing=true;queueSince=response.since||Date.now();
+    queuePolicy=response;
+    if(response.profile && validProfile(response.profile))acceptProfile(response.profile);
+    clearTimeout(profileRetryTimer);profileRetryTimer=null;
     sessionStorage.setItem(searchKey,'1');
     pending=false;renderQueue();
     clearTimeout(queueTimer);
     connectQueueSocket();
-    queueTimer=setTimeout(pollQueue,queueSocket?.readyState===WebSocket.OPEN?15000:5000);
+    // Polling also re-evaluates waiting pairs when their rating windows widen.
+    queueTimer=setTimeout(pollQueue,timing.queuePoll);
   } else {
     stopQueue();pending=false;renderLobby();
     setStatus(response.status==='expired'?'Пока соперников нет. Попробуйте ещё раз.':'Поиск был прерван. Нажмите «Искать матч» снова.');
@@ -461,6 +504,7 @@ async function pollQueue() {
     if(generation!==queueGeneration || !queueing)return;
     await handleQueue(response);
   } catch(error) {
+    if(generation!==queueGeneration || closed || !queueing)return;
     setError(`Поиск временно недоступен: ${error.message}`);
     if(queueing) queueTimer=setTimeout(async()=>{
       try { await authenticate(); pollQueue(); }
@@ -471,6 +515,7 @@ async function pollQueue() {
 async function startSearch() {
   if(pending||queueing) return;
   const generation=++queueGeneration;
+  clearTimeout(profileRetryTimer);profileRetryTimer=null;
   pending=true;setError('');setStatus('Подключаем поиск игроков…');
   try {
     if(!endpoint) throw new Error('Адрес сервера пока не задан');
@@ -479,11 +524,15 @@ async function startSearch() {
     if(generation!==queueGeneration || closed)return;
     await handleQueue(response);
     if(queueing) setStatus('Поиск соперника запущен');
-  } catch(error) {pending=false;setStatus('Нет подключения');setError(error.message);}
+  } catch(error) {
+    if(generation!==queueGeneration || closed)return;
+    pending=false;setStatus('Нет подключения');setError(error.message);
+  }
 }
 async function cancelSearch() {
   if(!queueing) return;
   stopQueue();renderLobby();setStatus('Поиск остановлен');
+  if(!profileFresh)loadProfile();
   try { await api('/queue/cancel'); }
   catch(error) {
     setError(error.message);
@@ -499,7 +548,7 @@ function resetRoom() {
   battleSelection=null;primeSelection.clear();duelExpanded=false;lastRenderedRoom=null;lastRenderedVersion=-1;
   sessionStorage.removeItem(storageKey);
   renderLobby();setStatus('Выберите следующую игру');
-  refreshProfile().catch(error=>setError(error.message));
+  loadProfile();
 }
 function connectSocket() {
   if (!room || !isOpen() || closed || socket?.readyState === WebSocket.OPEN || connecting) return;
