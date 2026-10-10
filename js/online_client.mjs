@@ -37,7 +37,7 @@ let queueing = false, queueSince = null, queueTimer = null, profile = null, lead
 let leaderboardIndexing=false;
 let presence = null, secondTimer = null, clockOffset = 0;
 let duelExpanded = false, lastRenderedRoom = null, lastRenderedVersion = -1;
-const timing={http:10000,profile:3500,profileAuth:4500,profileRetry:1000,profileRetryMax:15000,queuePoll:4000,queueRetryBase:700,queueStartRetry:500,connect:9000,ack:7000,heartbeat:15000,searchMax:90000,queueRecovery:18000,roomRecovery:30000,watchdogTick:500,roomRetry:700,autoStage:850,...(local?window.SOUL_ARENA_NETWORK_TIMING||{}:{})};
+const timing={http:12000,profile:8000,profileAuth:12000,profileRetry:1000,profileRetryMax:15000,queuePoll:4000,queueRetryBase:700,queueStartRetry:500,connect:9000,ack:7000,heartbeat:15000,searchMax:90000,queueRecovery:30000,roomRecovery:30000,watchdogTick:500,roomRetry:700,autoStage:850,...(local?window.SOUL_ARENA_NETWORK_TIMING||{}:{})};
 const actionKey='soulArenaPendingActionR81';
 const authStorageKey='soulArenaSessionR81';
 const profileStorageKey='soulArenaVerifiedProfileR83';
@@ -46,6 +46,10 @@ const launchIdentity=launchParams.get('logged_user_id')?'ok:'+launchParams.get('
   launchParams.get('vk_user_id')?(launchParams.get('vk_client')==='ok'?'ok:':'vk:')+launchParams.get('vk_user_id'):
   local&&launchParams.get('debugPlayer')?'vk:'+launchParams.get('debugPlayer'):null;
 let authFlight=null,expiresAt=0,profileFlight=null,profileRetryTimer=null;
+// R87.1 carries signed session tokens in HTTPS POST bodies. This keeps every
+// browser API call CORS-safelisted; cookies and URL tokens are never used.
+// A session response without this capability retains the legacy header API.
+let postBodyTransport=true;
 let profileFresh=false,profileRevision=0;
 try{const saved=JSON.parse(sessionStorage.getItem(authStorageKey)||'null');if(saved?.endpoint===endpoint && launchIdentity && saved.userId===launchIdentity && saved.expiresAt>Date.now()+30_000){token=saved.token;expiresAt=saved.expiresAt;}}catch{}
 try{
@@ -63,9 +67,10 @@ let roomAbort=null,roomGeneration=0,assignedCode=null,networkPhase='idle';
 let socketRecoverySince=0,socketRecoveryTimer=null,socketRecoveryStopped=false,socketRecoveryEpoch=0;
 let autoStageTimer=null,autoStageKey=null;
 let autoStages=true;try{autoStages=localStorage.getItem('soulArenaAutoStagesR85')!=='0';}catch{}
-const diagnostics={build:'R87.0',serverBuild:null,phase:'idle',queueFailures:0,lastFailure:null};
+const diagnostics={build:'R87.1',serverBuild:null,phase:'idle',queueFailures:0,lastFailure:null};
 window.SOUL_ARENA_ONLINE_DIAGNOSTICS=Object.freeze({snapshot:()=>({...diagnostics,
-  phase:networkPhase,searchAgeMs:searchRequestedAt?Math.max(0,Date.now()-searchRequestedAt):0})});
+  phase:networkPhase,httpTransport:postBodyTransport?'post-body-v1':'legacy-header',
+  searchAgeMs:searchRequestedAt?Math.max(0,Date.now()-searchRequestedAt):0})});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const requestId=()=>window.crypto?.randomUUID?.()||`r81-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 function clearAction(){pendingAction=null;pending=false;clearTimeout(actionTimer);actionTimer=null;sessionStorage.removeItem(actionKey);}
@@ -483,12 +488,18 @@ async function requestApi(path,payload,authorized,method,options={}) {
   if(path==='/room/create')stablePayload.requestId ||= requestId();
   let renewed=false;const attempts=options.attempts??2;
   for(let attempt=0;attempt<attempts;attempt++) {
+    const requestStarted=Date.now();
+    const bodyTransport=authorized&&postBodyTransport;
+    const wireMethod=bodyTransport?'POST':method;
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),options.timeout??timing.http);
     const relay=()=>controller.abort();options.signal?.addEventListener('abort',relay,{once:true});
     if(options.signal?.aborted)controller.abort();
     try {
-      const headers={'Content-Type':'application/json',...(authorized?{Authorization:`Bearer ${token}`}:{})};
-      const response=await fetch(endpoint+path,{method,headers,signal:controller.signal,...(method==='POST'?{body:JSON.stringify(stablePayload)}:{})});
+      const headers=bodyTransport||!authorized?{'Content-Type':'text/plain;charset=UTF-8'}:
+        {'Content-Type':'application/json',Authorization:`Bearer ${token}`};
+      const body=bodyTransport?{...stablePayload,sessionToken:token}:stablePayload;
+      const response=await fetch(endpoint+path,{method:wireMethod,headers,credentials:'omit',signal:controller.signal,
+        ...(wireMethod==='POST'?{body:JSON.stringify(body)}:{})});
       const serverBuild=response.headers?.get?.('X-Arena-Build');if(serverBuild)diagnostics.serverBuild=serverBuild;
       let result;try{result=await response.json();}catch{throw Object.assign(new Error('Сервер вернул непонятный ответ'),{retryable:true});}
       if(!response.ok) {
@@ -503,6 +514,8 @@ async function requestApi(path,payload,authorized,method,options={}) {
       if(options.signal?.aborted)throw error;
       if(aborted)error=Object.assign(new Error('Сервер не ответил вовремя. Проверяем подключение.'),{retryable:true});
       if(error instanceof TypeError)error=Object.assign(new Error('Нет связи с сервером. Проверьте интернет.'),{retryable:true});
+      diagnostics.lastFailure={at:Date.now(),path:path.split('?')[0],method:wireMethod,
+        elapsedMs:Date.now()-requestStarted,code:error.code||(aborted?'NETWORK_TIMEOUT':error.status?`HTTP_${error.status}`:'NETWORK_ERROR')};
       if(attempt===attempts-1 || !error.retryable || error.code==='SERVER_BUSY')throw error;
       clearTimeout(timer);await pause(450+Math.random()*350);
     }finally{clearTimeout(timer);options.signal?.removeEventListener('abort',relay);}
@@ -518,6 +531,7 @@ async function authenticate(force = false,options={}) {
     const debugPlayer=local&&/^\d+$/.test(params.get('debugPlayer')||'')?params.get('debugPlayer'):undefined;
     const result=await api('/session',{launch:location.search,includeProfile:true,...(debugPlayer?{debugPlayer}:{})},false,options);
     if(result.build)diagnostics.serverBuild=result.build;
+    postBodyTransport=result.httpTransport==='post-body-v1';
     token=result.token;expiresAt=result.expiresAt||Date.now()+11*3600_000;
     if(launchIdentity)try{sessionStorage.setItem(authStorageKey,JSON.stringify({token,expiresAt,endpoint,userId:result.userId||launchIdentity}));}catch{}
     if(result.profile && validProfile(result.profile))acceptProfile(result.profile);

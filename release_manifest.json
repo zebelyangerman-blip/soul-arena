@@ -1,12 +1,12 @@
 {
-  "release": "R87.0",
-  "builtAt": "2026-10-10T13:32:05.788290+00:00",
+  "release": "R87.1",
+  "builtAt": "2026-10-10T14:53:51.429726+00:00",
   "title": "Арена Душ: Битва Миров",
   "platform": [
     "VK",
     "Odnoklassniki"
   ],
-  "base": "R86.0 / R86.1 complete bot strategy and online polish update",
+  "base": "R87.0 connection transport hotfix",
   "roster": 75,
   "matrixRows": 33300,
   "matrix": {
@@ -67,40 +67,27 @@
   ],
   "testStatus": {
     "unitAndUI": {
-      "passed": 107,
+      "passed": 116,
       "failed": 0
     },
-    "canonicalFreshRows": 33300,
-    "survivorEvaluatorChecks": 1000,
-    "botAudit": {
-      "draftChoices": 100800,
-      "eliteOpportunities": 10836,
-      "eliteGiveaways": 0,
-      "primeChoices": 10000,
-      "battleChoices": 20000,
-      "knownWinningCounters": 7202,
-      "missedWinningCounters": 0,
-      "fullSeries": 1000,
-      "matches": 7515,
-      "moves": 221452,
-      "maxEvaluations": 180,
-      "evaluationFailures": 0
+    "connectionBrowser": {
+      "corsEnforced": true,
+      "oldStartupFailureReproduced": true,
+      "pendingPreflightRecovery": true,
+      "sixSecondLogin": true,
+      "preflightRequestsInPatchedCases": 0
     },
     "localWorkerdE2E": true,
-    "localFullLoad": {
-      "players": 200,
-      "humanSeries": 100,
-      "botSeries": 100,
-      "botConcurrency": 5,
-      "peakSockets": 205,
-      "remainingSockets": 0,
-      "websocketClients": [
-        "Node native Undici",
-        "ws"
-      ],
-      "finalRunsPassed": 2,
-      "exploratoryCloseFailuresRecorded": true
+    "localLoad": {
+      "players": 20,
+      "matches": 10,
+      "connections": 20,
+      "actionBatches": 1,
+      "profileP50Ms": 137,
+      "profileP95Ms": 137,
+      "elapsedMs": 841
     },
+    "concurrentFullBotSeries": 5,
     "browserDesktopAndMobile": true,
     "tutorialPlaythrough": true,
     "fivePrimeAnimations": true,
@@ -108,6 +95,9 @@
       "checked": 143,
       "failed": 0
     },
+    "javascriptErrors": 0,
+    "preflight": true,
+    "deployDryRun": true,
     "livePlayerSessionsTested": false,
     "liveCloudflareLoadTested": false,
     "deployed": false
@@ -115,8 +105,8 @@
   "files": [
     {
       "path": "README.txt",
-      "bytes": 1010,
-      "sha256": "779d1a90c9f69e528722a5f4bf363a37e9718f385a3b438e4776ad3de346b515"
+      "bytes": 1528,
+      "sha256": "89b33d9206b01158fc8a500d03f912b73ea8cb61426226f6a7b2a3483164bba3"
     },
     {
       "path": "audio/arena_01.mp3",
@@ -671,7 +661,7 @@
     {
       "path": "index.html",
       "bytes": 76442,
-      "sha256": "4c78cc97a5d4fd1892e694140427bab506f4425a2122f47ea702c5234c42ae60"
+      "sha256": "fea1a19c9a87afb74e84eac5cd2be917d794d98bb371a2e17ddcf06973eb2199"
     },
     {
       "path": "js/battle_explainer.js",
@@ -725,8 +715,8 @@
     },
     {
       "path": "js/online_client.mjs",
-      "bytes": 71915,
-      "sha256": "db156a8379ebfb282235cdc73028e94f31e970bb77e73ccc42ed6d09728c968f"
+      "bytes": 72852,
+      "sha256": "6115bef6853246c1fe76cde2fae13a9b21824f68a1d58381513bbbc77252a666"
     },
     {
       "path": "js/online_config.js",
@@ -847,8 +837,11 @@
     "clearMistakesAreNotDifficultyPolicy": true
   },
   "networkBudgetsMs": {
+    "http": 12000,
+    "profileAuth": 12000,
+    "profile": 8000,
     "search": 90000,
-    "queueFailure": 18000,
+    "queueFailure": 30000,
     "roomRecovery": 30000
   },
   "offlineBots": {
@@ -873,22 +866,68 @@
   },
   "update": {
     "from": [
-      "R86.0",
-      "R86.1"
+      "R87.0"
     ],
     "changedClientFiles": [
       "README.txt",
-      "css/online.css",
       "index.html",
-      "js/battle_scene_r81.js",
-      "js/cpu_ai.js",
-      "js/decision_core.js",
-      "js/game.js",
       "js/online_client.mjs",
       "release_manifest.json"
     ],
     "serverUpdate": "replace online folder; preserve installed dependencies and configuration",
     "historicalResultsRecalculated": false,
     "deployed": false
-  }
+  },
+  "previousReleaseEvidence": {
+    "release": "R87.0",
+    "testStatus": {
+      "unitAndUI": {
+        "passed": 107,
+        "failed": 0
+      },
+      "canonicalFreshRows": 33300,
+      "survivorEvaluatorChecks": 1000,
+      "botAudit": {
+        "draftChoices": 100800,
+        "eliteOpportunities": 10836,
+        "eliteGiveaways": 0,
+        "primeChoices": 10000,
+        "battleChoices": 20000,
+        "knownWinningCounters": 7202,
+        "missedWinningCounters": 0,
+        "fullSeries": 1000,
+        "matches": 7515,
+        "moves": 221452,
+        "maxEvaluations": 180,
+        "evaluationFailures": 0
+      },
+      "localWorkerdE2E": true,
+      "localFullLoad": {
+        "players": 200,
+        "humanSeries": 100,
+        "botSeries": 100,
+        "botConcurrency": 5,
+        "peakSockets": 205,
+        "remainingSockets": 0,
+        "websocketClients": [
+          "Node native Undici",
+          "ws"
+        ],
+        "finalRunsPassed": 2,
+        "exploratoryCloseFailuresRecorded": true
+      },
+      "browserDesktopAndMobile": true,
+      "tutorialPlaythrough": true,
+      "fivePrimeAnimations": true,
+      "localAssetLinks": {
+        "checked": 143,
+        "failed": 0
+      },
+      "livePlayerSessionsTested": false,
+      "liveCloudflareLoadTested": false,
+      "deployed": false
+    },
+    "botRuntimeUnchanged": true
+  },
+  "httpTransport": "post-body-v1"
 }
