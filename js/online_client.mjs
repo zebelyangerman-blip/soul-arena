@@ -8,7 +8,7 @@ root.innerHTML = `
   <div class="online-wrap">
     <header class="online-top">
       <div><small>АРЕНА ДУШ · ПОИСК СОПЕРНИКА</small><h1>Онлайн-арена</h1></div>
-      <button type="button" class="online-close" data-action="close" aria-label="Закрыть онлайн-арену">✕</button>
+      <button type="button" class="online-close" data-action="close" aria-label="Закрыть онлайн-арену">${window.SOUL_ARENA_ICONS?.svg('close',{size:20})||'×'}</button>
     </header>
     <div class="online-connection" role="status" aria-live="polite" id="online-connection"></div>
     <div class="online-message hidden" role="alert" id="online-error"></div>
@@ -63,7 +63,7 @@ let roomAbort=null,roomGeneration=0,assignedCode=null,networkPhase='idle';
 let socketRecoverySince=0,socketRecoveryTimer=null,socketRecoveryStopped=false,socketRecoveryEpoch=0;
 let autoStageTimer=null,autoStageKey=null;
 let autoStages=true;try{autoStages=localStorage.getItem('soulArenaAutoStagesR85')!=='0';}catch{}
-const diagnostics={build:'R86.0',serverBuild:null,phase:'idle',queueFailures:0,lastFailure:null};
+const diagnostics={build:'R87.0',serverBuild:null,phase:'idle',queueFailures:0,lastFailure:null};
 window.SOUL_ARENA_ONLINE_DIAGNOSTICS=Object.freeze({snapshot:()=>({...diagnostics,
   phase:networkPhase,searchAgeMs:searchRequestedAt?Math.max(0,Date.now()-searchRequestedAt):0})});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -159,7 +159,7 @@ function validProfile(value) {
     (!value.playerId || !launchIdentity || value.playerId===launchIdentity);
 }
 function acceptProfile(value) {
-  if(!validProfile(value))throw Object.assign(new Error('Сервер вернул некорректный PvP-профиль'),{retryable:true});
+  if(!validProfile(value))throw Object.assign(new Error('Сервер вернул некорректный профиль'),{retryable:true});
   profile={...value};profileFresh=true;profileRevision++;profileRetries=0;
   clearTimeout(profileRetryTimer);profileRetryTimer=null;
   if(launchIdentity)try{localStorage.setItem(profileStorageKey,JSON.stringify({endpoint,userId:launchIdentity,verifiedAt:Date.now(),profile}));}catch{}
@@ -185,8 +185,8 @@ function renderRankProgress(value) {
   let index=0;for(let i=1;i<PVP_RANKS.length;i++)if(score>=PVP_RANKS[i].floor)index=i;
   const current=PVP_RANKS[index],next=PVP_RANKS[index+1];
   const percent=next?Math.max(0,Math.min(100,(score-current.floor)/(next.floor-current.floor)*100)):100;
-  return `<div class="r82-rank-progress"><div><b>${escapeHtml(current.title)}</b><small>${next?`До «${escapeHtml(next.title)}»: ${Math.max(0,next.floor-score)} Elo`:'Высшее звание арены'}</small></div><div class="r82-rank-track" role="progressbar" aria-label="Прогресс звания PvP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(percent)}"><i style="width:${percent}%"></i></div></div>
-    <details class="r82-rank-list"><summary>Все звания PvP</summary><div>${PVP_RANKS.map(r=>`<span class="${r===current?'is-current':''}"><b>${r.floor}</b>${escapeHtml(r.title)}</span>`).join('')}</div><p>Рейтинг меняется за рейтинговую серию до пяти побед. При равном Elo: 5:4 — +16, 5:3 — +18, 5:2 — +20, 5:1 — +22, 5:0 — +24. Соперник теряет столько же. Сдача и тайм-аут — без бонуса за счёт. Комнаты с другом и реванши не изменяют PvP-рейтинг.</p></details>`;
+  return `<div class="r82-rank-progress"><div><b>${escapeHtml(current.title)}</b><small>${next?`До «${escapeHtml(next.title)}»: ${Math.max(0,next.floor-score)} Elo`:'Высшее звание арены'}</small></div><div class="r82-rank-track" role="progressbar" aria-label="Прогресс звания" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(percent)}"><i style="width:${percent}%"></i></div></div>
+    <details class="r82-rank-list"><summary>Все звания</summary><div>${PVP_RANKS.map(r=>`<span class="${r===current?'is-current':''}"><b>${r.floor}</b>${escapeHtml(r.title)}</span>`).join('')}</div><p>Рейтинг меняется за рейтинговую серию до пяти побед. При равном Elo: 5:4 — +16, 5:3 — +18, 5:2 — +20, 5:1 — +22, 5:0 — +24. Соперник теряет столько же. Сдача и тайм-аут — без бонуса за счёт. Комнаты с другом и реванши не изменяют рейтинг.</p></details>`;
 }
 function portrait(id) {
   const image=fighter(id)?.public?.portrait;
@@ -261,17 +261,16 @@ function renderLobby() {
   const savedCode=root.querySelector('#online-room-code')?.value;
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem r82-online-gate" aria-hidden="true"><svg width="35" height="35" viewBox="0 0 40 40" fill="none"><path d="M20 4L32 12V28L20 36L8 28V12Z" stroke="currentColor" stroke-width="1.5"/><path d="M20 10V30M12 16L28 24M28 16L12 24" stroke="currentColor" stroke-width="2"/></svg></div><h2>Найти соперника</h2>
-    <p>Сначала ищем человека близкого уровня. Если очередь свободна, сервер подберёт виртуального соперника примерно через 18 секунд. Полная серия — до пяти побед.</p>
-    <div class="online-my-rating">Ваш PvP-рейтинг <b>${profile?.rating ?? '—'}</b>
+    <p>Подбираем соперника близкого уровня. Полная серия — до пяти побед.</p>
+    <div class="online-my-rating">Ваш рейтинг <b>${profile?.rating ?? '—'}</b>
       ${profile?`<span class="online-rank-title">${rankTitle(profile.rating)}</span>`:''}
       <small>${profile?`${profile.wins} побед · ${profile.losses} поражений`: 'Появится после входа через VK/ОК'}</small>
       ${profile?`<small data-profile-freshness>${profileFresh?'Подтверждено сервером':'Сохранённые данные · сверяем с сервером'}</small>`:''}</div>
     ${renderRankProgress(profile)}
-    ${profile?.arena?`<div class="online-arena-progress"><b>Сезон арены ${escapeHtml(profile.arena.season)}</b><span>${Number(profile.arena.points)||0} очков · ${Number(profile.arena.wins)||0} побед · ${Number(profile.arena.losses)||0} поражений</span></div>`:''}
-    ${profile?.history?.length?`<div class="online-history"><strong>Последние серии</strong>${profile.history.slice(0,3).map(x=>`<span>${x.won?'Победа':'Поражение'} · ${escapeHtml(formatPlayer(x.opponent))} <b>${x.delta>0?'+':''}${x.delta}</b></span>`).join('')}</div>`:''}
+    ${profile?.history?.length?`<div class="online-history"><strong>Последние серии</strong>${profile.history.slice(0,3).map(x=>`<span>${x.won?'Победа':'Поражение'} · ${escapeHtml(formatPlayer(x.opponent,x.opponentName))} <b>${x.delta>0?'+':''}${x.delta}</b></span>`).join('')}</div>`:''}
     ${recovery?`<div class="online-recovery-note"><p>Назначенный матч сохранён. Можно восстановить подключение.</p>${button('resume_room','ВЕРНУТЬСЯ В МАТЧ')}</div>`:''}
     ${endpoint?button('search',recovery?'Проверить следующий матч':'В БОЙ'): '<p class="online-note">Сервер ещё не подключён.</p>'}
-    <details class="online-mode-rules"><summary>Соперники и награды</summary><p>Арена объединяет людей и виртуальных соперников с разными игровыми стилями. PvP-Elo меняется только в рейтинговой серии с человеком. Завершённая серия с виртуальным соперником приносит 15 очков арены за победу или 5 за поражение; награды доступны за первые 12 завершённых серий в сутки. Сдача и тайм-аут очков не дают. Реванш проходит без рейтинговых наград.</p></details>
+    <details class="online-mode-rules"><summary>Рейтинг и результаты</summary><p>Рейтинг меняется по результату рейтинговой серии: победа повышает его, поражение снижает. Изменение зависит от рейтинга соперника и итогового счёта. Сдача и истечение времени хода считаются поражением. Реванш и комната с другом проходят без изменения рейтинга. Матчи без рейтинга отмечены на экране перед началом серии.</p></details>
     <label class="online-auto-option"><input type="checkbox" data-auto-stages ${autoStages?'checked':''}> Автоматический жребий</label>
     ${button('practice','Тренировка',false,'online-btn-secondary online-btn-small')}
     ${endpoint?button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small'):''}
@@ -293,19 +292,19 @@ function renderLobby() {
 function renderRanking() {
   if (!leaderboard) return '';
   return `<div class="online-ranking"><h3>Топ-20 игроков</h3>${leaderboardIndexing?'<p>Переносим сохранённые рейтинги в быстрый индекс. Таблица пока предварительная — обновите её через несколько секунд.</p>':''}${leaderboard.length?
-    leaderboard.map((p,i)=>`<div><span>${i+1}. ${escapeHtml(formatPlayer(p.playerId))}<small>${rankTitle(p.rating)} · ${p.series ?? 0} серий</small></span><b>${p.rating}</b></div>`).join(''):
+    leaderboard.map((p,i)=>`<div><span>${i+1}. ${escapeHtml(formatPlayer(p.playerId,p.displayName))}<small>${rankTitle(p.rating)} · ${p.series ?? 0} серий</small></span><b>${p.rating}</b></div>`).join(''):
     '<p>Пока нет игроков в рейтинге.</p>'}</div>`;
 }
-function formatPlayer(id) {
-  const [platform,value]=String(id||'').split(':');
-  return `${platform==='ok'?'ОК':'VK'} #${value||'—'}`;
+function formatPlayer(id,name) {
+  if(name&&!/тихий\s+уголь|виртуальн/i.test(String(name)))return String(name);
+  return 'Соперник';
 }
 function renderQueue() {
   if (!isOpen() || !queueing) return;
   root.classList.remove('online-in-match');
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem online-search-icon">⚔️</div><h2>Ищем соперника</h2>
-    <p>${networkPhase==='authenticating'?'Проверяем подключение и ваш сеанс.':networkPhase==='recovering'?'Восстанавливаем подтверждение поиска.':'Ищем ближайшего по уровню соперника.'} Диапазон: <b data-queue-gap>±${Number(queuePolicy?.ratingGap)||200}</b> Elo.</p>
+    <p>${networkPhase==='authenticating'?'Проверяем подключение и ваш сеанс.':networkPhase==='recovering'?'Продолжаем подбор соперника.':'Ищем ближайшего по уровню соперника.'} Диапазон: <b data-queue-gap>±${Number(queuePolicy?.ratingGap)||200}</b> Elo.</p>
     <p class="online-note" data-bot-countdown>${botCountdownText()}</p>
     <p class="online-note" data-queue-expansion>${queueExpansionText()}</p>
     <p class="online-search-clock">В поиске: <b data-queue-clock>00:00</b></p>
@@ -332,13 +331,7 @@ function updateClocks() {
   }
 }
 function botCountdownText() {
-  if(networkPhase==='authenticating')return 'Подключение ограничено по времени — бесконечного ожидания нет.';
-  if(networkPhase==='recovering')return 'Матч начнётся после подтверждения сервера. Если связь не восстановится, поиск остановится.';
-  if(queuePolicy?.allowBots&&Number.isFinite(queuePolicy.botAt)) {
-    const left=Math.max(0,Math.ceil((queuePolicy.botAt-Date.now()-clockOffset)/1000));
-    return left?`Если очередь свободна, соперник арены подключится примерно через ${left} сек.`:'Сервер подбирает соперника арены…';
-  }
-  return 'Ждём подтверждения очереди. Поиск можно отменить в любой момент.';
+  return 'Поиск можно отменить в любой момент.';
 }
 function queueExpansionText() {
   if(!queuePolicy?.nextExpansionAt)return queuePolicy?.ratingGap>=600?'Максимальный диапазон поиска: ±600 Elo.':'Проверяем очередь игроков…';
@@ -350,7 +343,8 @@ function renderMatch() {
   root.classList.add('online-in-match');
   const {match:m,seat} = view;
   const mine = isMyTurn(m,seat);
-  const opponentProfile=m.participants?.[1-seat];
+  const participant=m.participants?.[1-seat];
+  const opponentProfile=participant?{...participant,name:participant.displayName||participant.name}:null;
   const opponentName=opponentProfile?.name||(m.mode==='friend'?'Друг':'Соперник');
   const otherLabel=escapeHtml(opponentName);
   const oldStage = ui.content.querySelector('[data-online-stage]')?.dataset.onlineStage;
@@ -426,21 +420,21 @@ function renderMatch() {
     const interrupted=series&&m.seriesEndReason==='server_error';
     const result=m.ratingResult;
     const delta=result?.delta?.[seat]||0;
-    const reason=series&&m.lastAction?.type==='timeout'?
+    const endReason=m.seriesEndReason||m.lastAction?.type;
+    const reason=series&&endReason==='timeout'?
       (won?'У соперника истекло время хода.':'Время вашего хода истекло.'):
-      series&&m.lastAction?.type==='surrender'?(won?'Соперник сдался.':'Вы сдались.') : '';
+      series&&endReason==='surrender'?(won?'Соперник сдался.':'Вы сдались.') : '';
     const ratingText=!m.ranked||!series?'':!m.ratingFinalized?
       '<p>Сервер сохраняет результат серии и рейтинг…</p>':result?.rated?
-      `<div class="online-result-rating">Ваш PvP-рейтинг: <b>${result.after[seat]}</b> <strong>${delta>0?'+':''}${delta}</strong><span class="online-rank-title">${rankTitle(result.after[seat])}</span></div>${won&&result.bonus>0?`<p>Бонус за уверенную победу: +${result.bonus} Elo уже включён в итог.</p>`:''}`:
-      result?.kind==='arena_ai'?`<div class="online-result-rating"><b>+${Number(result.points)||0} очков арены</b><span>В сезоне: ${Number(result.totalPoints)||0} · PvP-Elo сохранён</span></div><p class="online-note">${result.endReason==='server_error'?'Серия прервана без изменения прогресса.':result.points?'Награда подтверждена сервером.':result.endReason==='completed'?'Лимит наград на сегодня достигнут.':'За сдачу и тайм-аут очки не начисляются.'}</p>`:
-      '<p>Повторная встреча: рейтинг не изменился.</p>';
+      `<div class="online-result-rating">Ваш рейтинг: <b>${result.after[seat]}</b> <strong data-change="${delta<0?'loss':delta>0?'gain':'none'}">${delta>0?'+':''}${delta}</strong><span class="online-rank-title">${rankTitle(result.after[seat])}</span></div>${won&&result.bonus>0?`<p>Бонус за уверенную победу: +${result.bonus} Elo уже включён в итог.</p>`:''}`:
+      '<p>Рейтинг этой серии не изменился.</p>';
     body=`<div class="online-focus online-finish"><span class="online-step">${series?'СЕРИЯ ДО ПЯТИ ПОБЕД':'МАТЧ'}</span>
-      <h2>${interrupted?'Матч остановлен':won?'Победа!':'Поражение'}</h2><p>${interrupted?'Сервер не смог продолжить серию. Поражение не засчитано; очки и PvP-рейтинг сохранены.':reason||(series?'Серия завершена.':'Матч завершён. Следующий начнётся, когда оба игрока будут готовы.')}</p>
+      <h2>${interrupted?'Матч остановлен':won?'Победа!':'Поражение'}</h2><p>${interrupted?'Сервер не смог продолжить серию. Поражение не засчитано; рейтинг сохранён.':reason||(series?'Серия завершена.':'Матч завершён. Следующий начнётся, когда оба игрока будут готовы.')}</p>
       ${ratingText}${m.ready[seat]?'<p>Вы готовы. Ждём соперника.</p>':button('ready',series&&m.ranked?'Реванш без рейтинга':series?'Новая серия':'Следующий матч',series&&m.ranked&&!m.ratingFinalized)}
       ${series&&m.mode!=='friend'?button('search_again','Найти нового соперника',false,'online-btn-secondary'):''}
     </div>`;
   }
-  const modeLabel=m.opponentType==='ai'?(m.ranked?'СЕРИЯ АРЕНЫ · ПРОГРЕСС СЕЗОНА':'РЕВАНШ АРЕНЫ · БЕЗ НАГРАД'):m.mode==='matchmaking'?(m.ratingEligible?'РЕЙТИНГОВАЯ СЕРИЯ':'ВСТРЕЧА БЕЗ РЕЙТИНГА'):
+  const modeLabel=m.mode==='matchmaking'?(m.ratingEligible?'РЕЙТИНГОВАЯ СЕРИЯ':'ВСТРЕЧА БЕЗ РЕЙТИНГА'):
     m.mode==='rematch'?'РЕВАНШ БЕЗ РЕЙТИНГА':'ИГРА С ДРУГОМ · БЕЗ РЕЙТИНГА';
   const history=(Array.isArray(m.events)?m.events:[]).filter(event=>event.matchNumber===m.matchNumber)
     .map(event=>eventLine(event,seat)).filter(Boolean).slice(-8).reverse();
@@ -451,7 +445,7 @@ function renderMatch() {
       <div class="online-score-side"><small>${otherLabel.toUpperCase()}</small><b>${m.wins[1-seat]}</b></div></div>
     <div class="online-roomline">${m.mode==='friend'?`<span>Комната <b>${escapeHtml(room)}</b></span>${button('copy','Копировать код',false,'online-btn-small')}`:
       `<span>Матч с соперником</span>`}<span class="online-presence" data-online-presence>${presence===false?'Соперник переподключается':presence===true?'Соперник в сети':''}</span></div>
-    ${opponentProfile?.name?`<details class="online-opponent-profile"><summary><span class="online-profile-avatar">${portrait(opponentProfile.avatarId)}</span><b>${escapeHtml(opponentProfile.name)}</b><span>Профиль соперника ▾</span></summary><p>Виртуальный соперник арены. Стиль: ${escapeHtml({pressure:'напористый',patient:'осторожный',tactician:'тактический',explorer:'экспериментирующий'}[opponentProfile.style]||'сбалансированный')}. Играет по общим правилам; будущие карты ему неизвестны.</p></details>`:''}
+    ${opponentProfile?.name?`<details class="online-opponent-profile"><summary><span class="online-profile-avatar">${portrait(opponentProfile.avatarId)}</span><b>${escapeHtml(opponentProfile.name)}</b><span>Профиль соперника ▾</span></summary><p>Рейтинг: <b>${Number.isSafeInteger(opponentProfile.rating)?opponentProfile.rating:'—'}</b></p></details>`:''}
     ${m.turnDeadlineAt?`<div class="online-turn-clock">${mine?'ВАШ ХОД':'ХОД СОПЕРНИКА'} · осталось <b data-turn-clock>03:00</b></div>`:''}
     <div class="online-force-strip"><span>Вы <b>${ownList.filter(c=>c.state<4).length}/5</b></span><i>${m.stage==='draft'?'ОТРЯДЫ':'В СТРОЮ'}</i><span><b>${theirList.filter(c=>c.state<4).length}/5</b> ${otherLabel}</span></div>
     <div class="online-mini-score">${miniTeam(ownList,'Ваши бойцы','own')}${miniTeam(theirList,`Бойцы ${m.mode==='friend'?'друга':'соперника'}`,'other')}</div>
@@ -547,7 +541,7 @@ function loadProfile() {
   clearTimeout(profileRetryTimer);profileRetryTimer=null;
   if(!endpoint || closed || !isOpen() || view || queueing || pending)return;
   networkState('idle');
-  profileFresh=false;renderLobby();setStatus(profile?'Сверяем ваш PvP-профиль с сервером…':'Проверяем ваш PvP-профиль…');
+  profileFresh=false;renderLobby();setStatus(profile?'Сверяем ваш профиль с сервером…':'Проверяем ваш профиль…');
   refreshProfile().catch(error=>{
     if(closed || !isOpen() || view || queueing)return;
     renderLobby();setError(error.message);
@@ -635,11 +629,10 @@ async function pollQueue() {
     if(generation!==queueGeneration || closed || !queueing)return;
     diagnostics.queueFailures++;diagnostics.lastFailure={at:Date.now(),code:error.code||'NETWORK_TIMEOUT'};
     queueFailureSince ||= Date.now();queueRetryCount++;
-    networkState('recovering','Восстанавливаем подключение к поиску…');renderQueue();
-    setError(`Поиск временно недоступен: ${error.message}`);
     if(error.retryable===false || error.status===401 || error.status===400) {
       stopQueue();pending=false;networkState('failed','Требуется новый вход через VK или ОК');renderLobby();setError(error.message);return;
     }
+    networkState('recovering','Поиск продолжается…');renderQueue();setError('');
     scheduleQueuePoll(Math.max(Number(error.retryAfterMs)||0,Math.min(6000,timing.queueRetryBase*2**Math.min(queueRetryCount,3))));
   }
   })();
@@ -663,7 +656,8 @@ async function startSearch() {
   } catch(error) {
     if(generation!==queueGeneration || closed)return;
     if(error.retryable) {
-      networkState('recovering','Восстанавливаем подтверждение поиска…');renderQueue();setError(error.message);
+      diagnostics.queueFailures++;diagnostics.lastFailure={at:Date.now(),code:error.code||'NETWORK_TIMEOUT'};
+      networkState('recovering','Поиск продолжается…');renderQueue();setError('');
       scheduleQueuePoll(Math.max(timing.queueStartRetry,Number(error.retryAfterMs)||0));return;
     }
     const ticket=queueSearchId;stopQueue();pending=false;networkState('failed','Нет подключения');renderLobby();setError(error.message);
@@ -890,7 +884,7 @@ window.openOnlineArena = function() {
     // A restored search checks its existing ticket before creating anything.
     queuePolicy={restored:true};pollQueue();
   } else {
-    setStatus(endpoint?'Проверяем ваш PvP-профиль…':'Ожидается адрес опубликованного сервера');
+    setStatus(endpoint?'Проверяем ваш профиль…':'Ожидается адрес опубликованного сервера');
     loadProfile();
   }
 };

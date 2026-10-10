@@ -63,7 +63,7 @@
         const PERF_ENGINE = window.SOUL_ARENA_PERFORMANCE || null;
         const PERF_CONFIG = PERF_ENGINE?.config || Object.freeze({particleCount:12,particleFps:24,modalParticleFps:8,pointerParticleInteraction:false,tilt:true,tiltMaxDeg:5,cpuPreviewMs:360,cpuPostCommitMs:120,maxCpuCacheEntries:2400});
         const R31_CPU_TIMING = Object.freeze({
-            thinkMinMs:850, thinkMaxMs:1150,
+            thinkMinMs:2200, thinkMaxMs:4800,
             draftPreviewMinMs:480, draftPreviewMaxMs:650,
             primeStudyMinMs:900, primeStudyMaxMs:1250,
             primeRevealMinMs:480, primeRevealMaxMs:650,
@@ -1018,7 +1018,19 @@
             const key = [Number(a?.id)||0,String(formA||''),Number(opts.stateA ?? a?.state ?? 0),Number(b?.id)||0,String(formB||''),Number(opts.stateB ?? b?.state ?? 0),arenaId].join('|');
             if (cpuEvalCache.has(key)) { cpuEvalCacheHits++; return cpuEvalCache.get(key); }
             cpuEvalCacheMisses++;
-            const result = resolveCombatV2(a, formA, b, formB, opts);
+            const stateA = Number(opts.stateA ?? a?.state ?? 0);
+            const stateB = Number(opts.stateB ?? b?.state ?? 0);
+            const arena = getArenaRule(opts.arena)?.publicName || getReskinnedArena(opts.arena);
+            const row = stateA === 0 && stateB === 0
+                ? EXCEL_MATCHUPS[makeBattleKey(a.name, formA, b.name, formB, arena)] : null;
+            const winnerId = Number(row?.winnerId);
+            const damage = row ? parseFatigueState(row.state) : null;
+            // Fresh fighters use the canonical table, exactly as startCombat.
+            // Survivors use the same state-aware engine as the actual duel.
+            const result = row && [a.id, b.id].includes(winnerId)
+                ? { winnerId, winnerStateDelta: damage, winnerProjectedExitState: advanceFatigueState(0, damage),
+                    difficulty: row.difficulty, margin: row.margin, fatiguePrimary: false }
+                : resolveCombatV2(a, formA, b, formB, { ...opts, arena });
             cpuEvalCache.set(key, result);
             const maxEntries = Math.max(400, Number(PERF_CONFIG.maxCpuCacheEntries)||2400);
             if (cpuEvalCache.size > maxEntries) {
@@ -1573,7 +1585,7 @@
             const gain = Math.max(0, Number(char.primePower) - Number(char.basePower));
             const weakChoice = Number(char.primePower) < 60 || gain < 8;
             const text = weakChoice
-                ? `Лёгкий бот активировал PRIME у «${char.name}» (${char.basePower} → ${char.primePower}). Это не обязательно лучший вариант: Easy специально допускает ошибки. Важно, что вы видите выбор бота до начала боя.`
+                ? `Лёгкий бот активировал PRIME у «${char.name}» (${char.basePower} → ${char.primePower}). Он оценивает пользу Прайма по исходам боя, а не только по прибавке силы. Вы видите его выбор до начала боя.`
                 : `Лёгкий бот активировал PRIME у «${char.name}» (${char.basePower} → ${char.primePower}). Он сам выбрал этого бойца, как в обычном матче.`;
             r41Coach(`PRIME бота · ${index}/${count}`, text, `#bonus-team-grid [data-fighter-id="${Number(char.id)}"]`);
         }
@@ -3789,7 +3801,7 @@
         }
 
         window.SOUL_ARENA_R31_CPU_PACING = Object.freeze({
-            version:'R31.0.0',
+            version:'R87.0',
             timing:R31_CPU_TIMING,
             sameVisualTimingAcrossDifficulties:true,
             primeAssignmentsRevealSequentially:true,

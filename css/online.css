@@ -48,6 +48,8 @@
 .online-turn-clock { text-align:center; color:#d8e2f1; font-size:13px; }.online-turn-clock b { color:#f3c87e; font-family:ui-monospace,monospace; }
 .online-result-rating { background:#233451; border:1px solid #81704c; padding:12px; border-radius:12px; color:#e8eef9; }
 .online-result-rating b { font-size:24px; color:#f4cc80; }.online-result-rating strong { margin-left:8px; font-size:18px; color:#a3e0ab; }
+.online-result-rating strong[data-change="loss"] { color:#ffb0bd; }
+.online-result-rating strong[data-change="none"] { color:#becce4; }
 .online-code { font-size:clamp(22px,5vw,34px); margin:12px; user-select:all; -webkit-user-select:all; }
 .online-arena { text-align:center; color:#efd59a; font-weight:800; padding:3px; }
 .online-focus { max-width:680px; padding:16px; margin:14px auto; text-align:center; }

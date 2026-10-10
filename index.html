@@ -6,7 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <title>Арена Душ: Битва Миров</title>
 <meta content="#050816" name="theme-color"/>
-<meta content="Тактическая битва 5 на 5: драфт бойцов, Прайм-формы, три арены, поиск соперника и PvP-рейтинг, игра с другом, локальный режим и боты." name="description"/>
+<meta content="Тактическая битва 5 на 5: драфт бойцов, Прайм-формы, три арены, поиск соперника и онлайн-рейтинг, игра с другом, локальный режим и боты." name="description"/>
 <meta content="dark" name="color-scheme"/>
 <link href="css/tailwind.generated.css" rel="stylesheet"/>
 <link href="css/game.css" rel="stylesheet"/>
@@ -21,10 +21,10 @@
 <link href="css/r37-desktop-fit.css" rel="stylesheet"/>
 <link href="css/r41-tutorial.css" rel="stylesheet"/>
 <link href="css/r41-mobile-ux.css" rel="stylesheet"/>
-<link href="css/online.css?v=r86.0" rel="stylesheet"/>
+<link href="css/online.css?v=r87.0" rel="stylesheet"/>
 <link href="css/battle_r81.css?v=r82.0" rel="stylesheet"/>
 <link href="css/interface_r82.css?v=r83.1" rel="stylesheet"/>
-<link href="css/online_r85.css?v=r86.0" rel="stylesheet"/>
+<link href="css/online_r85.css?v=r87.0" rel="stylesheet"/>
 </head>
 <body class="flex flex-col relative r23-ui r28-ui r29-ui r31-ui r32-ui r33-ui r34-ui r41-ui r413-mobile-ux game-ui r82-ui" data-reduced-motion="false" data-screen="menu" data-ui-theme="ember">
 <div aria-live="polite" class="r13-boot-splash" id="r13-boot-splash" role="status">
@@ -89,19 +89,19 @@
 <button class="r41-coach-next hidden" id="r41-coach-next" type="button" onclick="r41CoachContinue()">ПРОДОЛЖИТЬ</button>
 </div>
 <section aria-label="Главное меню" class="menu-screen r82-hub" id="main-menu-screen">
-<div class="r82-hub-top"><a class="r82-wordmark" href="#" onclick="event.preventDefault();showMainMenu()"><span data-ui-icon="prime" data-icon-size="25"></span><b>АРЕНА ДУШ<small>БИТВА МИРОВ</small></b></a><span class="r82-hub-edition">ДРАФТ · ПРАЙМ · PvP</span><button type="button" class="r82-icon-button" onclick="openAudioSettings()" aria-label="Настройки"><span data-ui-icon="settings" data-icon-size="22"></span></button></div>
+<div class="r82-hub-top"><a class="r82-wordmark" href="#" onclick="event.preventDefault();showMainMenu()"><span data-ui-icon="prime" data-icon-size="25"></span><b>АРЕНА ДУШ<small>БИТВА МИРОВ</small></b></a><span class="r82-hub-edition">ДРАФТ · ПРАЙМ · ОНЛАЙН</span><button type="button" class="r82-icon-button" onclick="openAudioSettings()" aria-label="Настройки"><span data-ui-icon="settings" data-icon-size="22"></span></button></div>
 <div class="r82-hub-grid">
 <div class="r82-hero">
 <div class="r82-eyebrow"><i></i> ТАКТИЧЕСКАЯ КАРТОЧНАЯ АРЕНА</div>
 <h1 class="menu-title r82-hero-title">ПЯТЬ БОЙЦОВ.<br><em>ОДНА ПОБЕДА.</em></h1>
 <p class="menu-lead r82-hero-lead">Соберите отряд. Пробудите Прайм.<br>Победите на арене душ.</p>
 <div class="r82-hero-deck"><figure class="r82-hero-card r82-hero-card-0" aria-hidden="true"><img src="images/fighter_008.png" alt="" decoding="async" fetchpriority="high"><figcaption><small>ПЛАМЯ</small><b>Владыка Огненного Клинка</b></figcaption></figure><figure class="r82-hero-card r82-hero-card-1" aria-hidden="true"><img src="images/fighter_001.png" alt="" decoding="async" fetchpriority="high"><figcaption><small>ДУХОВНЫЙ КЛИНОК</small><b>Алый Жнец</b></figcaption></figure><figure class="r82-hero-card r82-hero-card-2" aria-hidden="true"><img src="images/fighter_002.png" alt="" decoding="async" fetchpriority="high"><figcaption><small>АБСОЛЮТНЫЙ ХЛАД</small><b>Дева Ледяной Бездны</b></figcaption></figure><div class="r82-deck-orbit"></div></div>
-<div class="r82-hero-stats"><span><b>75</b> бойцов</span><span><b>5 × 5</b> драфт</span><span><b>3</b> арены</span><span><b>PvP</b> онлайн</span></div>
+<div class="r82-hero-stats"><span><b>75</b> бойцов</span><span><b>5 × 5</b> драфт</span><span><b>3</b> арены</span><span><b>Elo</b> онлайн</span></div>
 </div>
 <div class="r82-command r16-hub-panel">
 <div class="r82-profile r16-profile-strip"><div class="r16-profile-avatar"><img alt="" class="hidden" id="hub-vk-avatar"/><span id="hub-vk-fallback">SA</span></div><div class="r16-profile-copy"><small>ВАШ КОМАНДНЫЙ ЦЕНТР</small><b id="hub-player-name">Игрок</b><span data-player-title="">Рекрут Арены</span></div></div>
 <div class="r82-resources r19-hub-metrics"><button type="button" onclick="openFeaturePreview('rating')" title="Офлайн-рейтинг против ботов"><span data-ui-icon="rating" data-icon-size="18"></span><b id="hub-rating">800</b><small>ИИ · <span id="hub-rank">Новичок</span></small></button><button type="button" onclick="openEconomyInfo()" title="Монеты"><span data-ui-icon="coin" data-icon-size="18"></span><b data-coin-balance="" id="hub-coins">0</b><small>монеты</small></button><div title="Осколки оформления"><span data-ui-icon="shard" data-icon-size="18"></span><b id="hub-shards">0</b><small>осколки</small></div></div>
-<div class="r82-play-actions"><button type="button" class="menu-primary-btn r82-online-cta" onclick="openOnlineArena()"><span data-ui-icon="swords" data-icon-size="24"></span><span><b>ИГРАТЬ ОНЛАЙН</b><small>Подбор соперника · PvP-рейтинг</small></span><i>↗</i></button><button type="button" class="r82-offline-cta" onclick="startGameFromMenu()"><span data-ui-icon="play" data-icon-size="20"></span><span>БОТЫ И ИГРА ВДВОЁМ</span><i>›</i></button></div>
+<div class="r82-play-actions"><button type="button" class="menu-primary-btn r82-online-cta" onclick="openOnlineArena()"><span data-ui-icon="swords" data-icon-size="24"></span><span><b>ИГРАТЬ ОНЛАЙН</b><small>Подбор соперника · онлайн-рейтинг</small></span><i>↗</i></button><button type="button" class="r82-offline-cta" onclick="startGameFromMenu()"><span data-ui-icon="play" data-icon-size="20"></span><span>БОТЫ И ИГРА ВДВОЁМ</span><i>›</i></button></div>
 <div class="r82-command-label"><span>КОЛЛЕКЦИЯ И ПРОГРЕСС</span><i></i></div>
 <div class="r82-hub-tools r16-hub-grid">
 <button type="button" class="menu-secondary-btn" onclick="openFeaturePreview('bestiary')"><span data-ui-icon="bestiary" data-icon-size="22"></span><b>Бойцы</b><small id="hub-bestiary-count">0/75</small></button>
@@ -290,7 +290,7 @@
 </article>
 <article class="r16-mode-card is-ready">
 <div class="r16-mode-icon"><span data-ui-icon="online" data-icon-size="42"></span></div>
-<div class="r16-mode-card-body"><span class="r16-mode-badge ready">НОВЫЙ РЕЖИМ</span><h3>Онлайн PvP</h3><p>Найдите случайного соперника, сыграйте рейтинговую серию до пяти побед или пригласите друга по коду.</p></div>
+<div class="r16-mode-card-body"><span class="r16-mode-badge ready">НОВЫЙ РЕЖИМ</span><h3>Онлайн-арена</h3><p>Найдите случайного соперника, сыграйте рейтинговую серию до пяти побед или пригласите друга по коду.</p></div>
 <button class="r16-mode-action" onclick="openOnlineArena()">ИГРАТЬ ОНЛАЙН</button>
 </article>
 </div>
@@ -306,7 +306,7 @@
 <p class="r16-mode-intro">Все четыре соперника используют одну и ту же честную боевую систему. Разница только в качестве решений: ИИ не получает другие карты, не меняет броски и не видит будущую очередь драфта.</p>
 <div class="r19-current-rating">Ваш рейтинг: <b id="cpu-current-rating">800</b> Elo <small>· меняется только после серии до 5</small></div>
 <div class="r16-cpu-grid">
-<article><span>Ⅰ</span><h3>Лёгкий</h3><p>Простые решения и много естественных ошибок. Подходит для знакомства с механиками.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-easy">800</i></b><small id="cpu-elo-delta-easy">Победа +16 · поражение −16</small><em id="cpu-wins-easy">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick" onclick="beginCpuGame('easy')">ИГРАТЬ</button></article>
+<article><span>Ⅰ</span><h3>Лёгкий</h3><p>Разумные базовые решения и расчёт ближайшего хода. Подходит для знакомства с механиками.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-easy">800</i></b><small id="cpu-elo-delta-easy">Победа +16 · поражение −16</small><em id="cpu-wins-easy">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick" onclick="beginCpuGame('easy')">ИГРАТЬ</button></article>
 <article><span>Ⅱ</span><h3>Средний</h3><p>Понимает силу карт, ценность Прайма и базовые контрпики, но остаётся обыгрываемым.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-medium">1100</i></b><small id="cpu-elo-delta-medium">Победа +27 · поражение −5</small><em id="cpu-wins-medium">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick" onclick="beginCpuGame('medium')">ИГРАТЬ</button></article>
 <article><span>Ⅲ</span><h3>Сложный</h3><p>Учитывает Прайм, состояние бойцов, текущую арену и последовательность команды.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-hard">1400</i></b><small id="cpu-elo-delta-hard">Победа +31 · поражение −1</small><em id="cpu-wins-hard">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick" onclick="beginCpuGame('hard')">ИГРАТЬ</button></article>
 <article><span>Ⅳ</span><h3>Мастер</h3><p>Использует полную боевую модель и оценивает все открытые контрпики — без скрытой информации.</p><div class="r19-bot-elo"><b>Elo <i id="cpu-bot-rating-master">1700</i></b><small id="cpu-elo-delta-master">Победа +32 · поражение ±0</small><em id="cpu-wins-master">Побед: 0 · серий: 0</em></div><button class="r18-cpu-pick master" onclick="beginCpuGame('master')">ИГРАТЬ</button></article>
@@ -321,9 +321,9 @@
 <div><div class="modal-eyebrow">БУДУЩИЕ ОБНОВЛЕНИЯ</div><h2 id="future-updates-title">Развитие онлайн-арены</h2></div>
 <button aria-label="Закрыть" class="modal-close" onclick="closeFutureUpdates()"><span data-ui-icon="close" data-icon-size="18"></span></button>
 </div>
-<div class="r16-future-hero"><span data-ui-icon="online" data-icon-size="42"></span><div><b>ONLINE PvP</b><p>Поиск соперника, рейтинг и игра с другом доступны после подключения сервера. Далее — сезоны и турниры.</p></div></div>
+<div class="r16-future-hero"><span data-ui-icon="online" data-icon-size="42"></span><div><b>ONLINE АРЕНА</b><p>Поиск соперника, рейтинг и игра с другом доступны после подключения сервера. Далее — сезоны и турниры.</p></div></div>
 <div class="r16-future-list">
-<article><b>01</b><div><h3>Рейтинговые сезоны</h3><p>Сезонные таблицы и награды за сезон, отдельно от текущего PvP-рейтинга.</p></div></article>
+<article><b>01</b><div><h3>Рейтинговые сезоны</h3><p>Сезонные таблицы и награды за сезон, отдельно от текущего онлайн-рейтинга.</p></div></article>
 <article><b>02</b><div><h3>Приглашения через VK</h3><p>Отправка приглашения другу одним нажатием прямо из игры.</p></div></article>
 <article><b>03</b><div><h3>Зрители</h3><p>Просмотр открытых матчей без возможности делать ходы.</p></div></article>
 <article><b>04</b><div><h3>Турниры и таблицы</h3><p>Сезонные соревнования, таблицы лидеров и история результатов.</p></div></article>
@@ -597,7 +597,7 @@
 <script src="data/battles.js"></script>
 <script src="data/draft_rules.js"></script>
 <script src="js/draft_engine.js"></script>
-<script src="js/cpu_ai.js"></script>
+<script src="js/decision_core.js?v=r87.0"></script><script src="js/cpu_ai.js?v=r87.0"></script>
 <script src="js/rating_engine.js"></script>
 <script src="js/economy_engine.js"></script>
 <script src="js/shop_engine.js"></script>
@@ -608,5 +608,5 @@
 
 
 
-<script src="js/icon_system.js"></script><script src="js/ui_shell.js"></script><script src="js/layout_engine.js"></script><script src="js/performance_engine.js"></script><script src="js/game.js?v=r86.0"></script><script src="r25-canon-model.js"></script><script src="js/battle_explainer.js"></script><script src="js/presentation_engine.js?v=r82.0"></script><script src="data/visual_profiles.js?v=r82.0"></script><script src="js/battle_scene_r81.js?v=r82.0"></script><script src="js/online_config.js?v=r86.0"></script><script type="module" src="js/online_client.mjs?v=r86.0"></script></body>
+<script src="js/icon_system.js"></script><script src="js/ui_shell.js"></script><script src="js/layout_engine.js"></script><script src="js/performance_engine.js"></script><script src="js/game.js?v=r87.0"></script><script src="r25-canon-model.js"></script><script src="js/battle_explainer.js"></script><script src="js/presentation_engine.js?v=r82.0"></script><script src="data/visual_profiles.js?v=r82.0"></script><script src="js/battle_scene_r81.js?v=r87.0"></script><script src="js/online_config.js?v=r87.0"></script><script type="module" src="js/online_client.mjs?v=r87.0"></script></body>
 </html>
