@@ -1,12 +1,12 @@
 {
-  "release": "R81.1",
-  "builtAt": "2026-10-03T01:46:15.511441+00:00",
+  "release": "R86.0",
+  "builtAt": "2026-10-10T00:05:48.802421+00:00",
   "title": "Арена Душ: Битва Миров",
   "platform": [
     "VK",
     "Odnoklassniki"
   ],
-  "base": "Published Bleach frontend + uploaded current online server",
+  "base": "R85 online release with R86 polish and full local QA",
   "roster": 75,
   "matrixRows": 33300,
   "matrix": {
@@ -54,7 +54,7 @@
     ]
   },
   "pinnedVkBridge": "2.15.12",
-  "runtimeNode": "24+",
+  "runtimeNode": "24.19.0",
   "workerName": "soul-arena-online",
   "protocolVersion": 2,
   "sameStorageNamespaces": true,
@@ -66,19 +66,49 @@
     "private online rooms"
   ],
   "testStatus": {
-    "unitTestsPassed": 19,
-    "canonicalOutcomesChecked": 33300,
-    "localConcurrentPlayers": 400,
-    "localConcurrentRooms": 200,
-    "loadScope": "Local workerd: WebSocket connections and one accepted move per room, not 200 complete series",
-    "liveCloudflareTested": false,
-    "liveVKAdsAndCloudSavesTested": false
+    "unitAndUI": {
+      "passed": 84,
+      "failed": 0
+    },
+    "serverOnly": {
+      "passed": 60,
+      "failed": 0,
+      "subsetOfFullSuite": true
+    },
+    "localWorkerdE2E": true,
+    "localFullLoad": {
+      "players": 200,
+      "fullSeries": 100,
+      "matches": 743,
+      "reconnects": 20,
+      "socketsAtStartIncludingAI": 205,
+      "peakSockets": 205,
+      "remainingSockets": 0
+    },
+    "localAiLoad": {
+      "players": 5,
+      "concurrency": 5,
+      "fullSeries": 100,
+      "waves": 20,
+      "matches": 663,
+      "reconnects": 100,
+      "finalResultReopens": 100,
+      "zeroRewardsAfterDailyCap": 40,
+      "humanConnectionsHeld": 200
+    },
+    "browserDesktopAndMobile": true,
+    "tutorialPlaythrough": true,
+    "liveReadinessChecked": true,
+    "liveReadinessBuild": "R84.0",
+    "livePlayerSessionsTested": false,
+    "liveCloudflareLoadTested": false,
+    "deployed": false
   },
   "files": [
     {
       "path": "README.txt",
-      "bytes": 4750,
-      "sha256": "43d64e97785d197c389a63a3b996ffd8fc3c610056b2e54d6fea5b4bacd5f599"
+      "bytes": 481,
+      "sha256": "d6812e2fef8a374667f78bd26a6a01570c0d00b1950472b2a22e2518db8e4325"
     },
     {
       "path": "audio/arena_01.mp3",
@@ -111,9 +141,19 @@
       "sha256": "289640d7e89293f266946e9014524256a7d04a89ba9d609e5fec57a09c74f4fe"
     },
     {
+      "path": "css/interface_r82.css",
+      "bytes": 46309,
+      "sha256": "42fb8cbb5109d76b269523f82e9b8776b5c49d56bad0abb2c98000a8c4423b82"
+    },
+    {
       "path": "css/online.css",
-      "bytes": 18202,
-      "sha256": "6e3329e90ce6a7b368ba361c812645c74f337a4578139c20f7b369ebc8cca425"
+      "bytes": 20197,
+      "sha256": "bfb0cfa153ff772389e0ba1fa1efc1827e8e9c0f104062626c6b5b92bf28df8a"
+    },
+    {
+      "path": "css/online_r85.css",
+      "bytes": 2518,
+      "sha256": "114c652cd1503f824f4fd4f4e9ad479436c072433098885eb9a519e89567773f"
     },
     {
       "path": "css/r28-layout.css",
@@ -616,9 +656,14 @@
       "sha256": "49edd512848f83aad553f2b76f732f4357107a0674aa3326d164aacc5a2b2571"
     },
     {
+      "path": "images/r82/sanctuary.webp",
+      "bytes": 343670,
+      "sha256": "f7225cabeab50b1cb0359b0d86902e69e2cb6fcddbc5a259a378ee7372506451"
+    },
+    {
       "path": "index.html",
-      "bytes": 75794,
-      "sha256": "2089a2fdffc80cf01e739e42146d152ac3146e20b72ecfe1d5587128f7892183"
+      "bytes": 76322,
+      "sha256": "f1bee3899ed3c963aeec8cb90b527e7dc209e7d20e0ffbfea14a3c0137dc8652"
     },
     {
       "path": "js/battle_explainer.js",
@@ -627,8 +672,8 @@
     },
     {
       "path": "js/battle_scene_r81.js",
-      "bytes": 586387,
-      "sha256": "2478f30fb4e64026382b56e94e8055d963a99d91f6fff581e1c6389b0ccb939b"
+      "bytes": 600928,
+      "sha256": "90a189712107fe6e80792f8262b45f1fcd3d6b00c861ed1614634b63117378fc"
     },
     {
       "path": "js/cloud_sync.js",
@@ -652,8 +697,8 @@
     },
     {
       "path": "js/game.js",
-      "bytes": 335478,
-      "sha256": "1f7620398a7730bc5f95dec42327bff7f8ce7f5524cc26b9b986f51f786ec234"
+      "bytes": 336465,
+      "sha256": "645566736a74b87881bdd3221951e810c07582cc46e6ebd19be34342e939d6d1"
     },
     {
       "path": "js/icon_system.js",
@@ -667,8 +712,8 @@
     },
     {
       "path": "js/online_client.mjs",
-      "bytes": 50308,
-      "sha256": "5b621963bfbed7371c573a251a8bd0978c086db0b7ac72b3df67af1920acec8e"
+      "bytes": 74103,
+      "sha256": "99f77f9cd399f877828b21583f2eaf1e4ea3a5bb4a850f6e28f0d7aebb04671c"
     },
     {
       "path": "js/online_config.js",
@@ -722,8 +767,8 @@
     },
     {
       "path": "licenses/THIRD_PARTY_NOTICES.txt",
-      "bytes": 1117,
-      "sha256": "00f7942456487981e7580401c44a1446e545d34bc28511cc742ea2e6c00dec1e"
+      "bytes": 1115,
+      "sha256": "0c99ce2a84c35af98788d9eb17e29cdd12eed36832b2e161017dc5ed6f1ee060"
     },
     {
       "path": "licenses/VK-Bridge-MIT.txt",
@@ -766,124 +811,22 @@
       "sha256": "4da724fc305d81606b245b324d4d2586916b9d248b23d82183df753ace0fdf71"
     },
     {
-      "path": "online/lobby.mjs",
-      "bytes": 16031,
-      "sha256": "c2d6060fdcc251941b439e46e4fb42dcf6012f8121fb0f00afcf92cc7212fe3e"
-    },
-    {
-      "path": "online/shared/battle-data.mjs",
-      "bytes": 977478,
-      "sha256": "ef98a67d5722de792982cc2743d2f92053a70cbd0387be06726e6a1cc13501a9"
-    },
-    {
-      "path": "online/shared/canon-core.mjs",
-      "bytes": 97306,
-      "sha256": "f25dbe8c2c0d70fe15d05d002357cf9b99987b3f2f06273a363c19b20db219c2"
-    },
-    {
-      "path": "online/shared/match.mjs",
-      "bytes": 14721,
-      "sha256": "f819db7c448ac26f6696f21a84385d4eb3c301f29052cdb361a10d0dc43d6567"
-    },
-    {
-      "path": "online/shared/rating.mjs",
-      "bytes": 1098,
-      "sha256": "9cd0de6ac912fac1ad81acb51886934a49802945a4a6031b393d3a228a7afef7"
-    },
-    {
-      "path": "online/shared/service.mjs",
-      "bytes": 1496,
-      "sha256": "f0f525cd6da111ceb1e54cfacc245cdb87e758a570b07cd1a0c1023a130aada1"
-    },
-    {
-      "path": "online/shared/source-data.mjs",
-      "bytes": 279944,
-      "sha256": "e7caa3c7fdf215aa2a4dcb74aa0d7f7d15401f8cd20684f7e7d3e45a77d2d40f"
-    },
-    {
-      "path": "online/tests/auth.test.mjs",
-      "bytes": 818,
-      "sha256": "2867c8c737c26329503bfd2364141b093867610f7725380a53ad9913db555c0e"
-    },
-    {
-      "path": "online/tests/e2e.local.mjs",
-      "bytes": 15832,
-      "sha256": "f1fad7ef600e365e9a6aea00c5e4c75308197a3795aa369849af76d017545d87"
-    },
-    {
-      "path": "online/tests/match.test.mjs",
-      "bytes": 4982,
-      "sha256": "88f6215602e1abb59d3672f5f49033713df5617728acebf8df47eef9b2c130e0"
-    },
-    {
-      "path": "online/tests/network-loopback.cjs",
-      "bytes": 465,
-      "sha256": "03beb35483eac2b7ff2dfd6436ce46417ccd89bbb3aaefc2de30a5d108204fbb"
-    },
-    {
-      "path": "online/tests/network-ui.test.mjs",
-      "bytes": 4445,
-      "sha256": "53a68ec408ef191ced5d9cd9174c17b15c6fa375f9fc8410817257de5371de58"
-    },
-    {
-      "path": "online/tests/rating.test.mjs",
-      "bytes": 591,
-      "sha256": "33b860a363b394f28c257d993c9718fe7a08abb7bd606783315b71dbd74faae3"
-    },
-    {
-      "path": "online/tests/reliability.test.mjs",
-      "bytes": 9191,
-      "sha256": "fdc425360249fc5bad8afb3ee6b0ea21280cdd3b6f3db7a7b3890513bd175205"
-    },
-    {
-      "path": "online/tests/ui.test.mjs",
-      "bytes": 5864,
-      "sha256": "aaa23fe655dd4732fcc9266bb34b79814873cc21e7095707d987284f812f5eb6"
-    },
-    {
-      "path": "online/tools/extract-canon.mjs",
-      "bytes": 3052,
-      "sha256": "a1d2675feccd823825064ffdb25a74b97feb2795b88bd69c04650e5802895508"
-    },
-    {
-      "path": "online/worker.mjs",
-      "bytes": 23866,
-      "sha256": "1542a70cafd4038f6039e28448e4503d53f7abd6bfa58a0c9628edd4411c9e24"
-    },
-    {
-      "path": "package-lock.json",
-      "bytes": 73600,
-      "sha256": "542bb21ebd28c3d321a513c45c73aea4f94acebda72fd4bd10662eb87da8685f"
-    },
-    {
-      "path": "package.json",
-      "bytes": 695,
-      "sha256": "d95487bbf73c7dd1a9934260e05da0dbe3ed254aec9eca643d80adc93907d391"
-    },
-    {
       "path": "r25-canon-model.js",
       "bytes": 15719,
       "sha256": "3861b9a62dba9013b0a89053ad1905aa92c92918b4f6958d5baf8d8932620316"
-    },
-    {
-      "path": "visual_src/battle-scene.mjs",
-      "bytes": 32242,
-      "sha256": "dae7366aa7b81ac44ed2bfe72c917bf9bdde5be7bf813c2665da0f86daac13f4"
-    },
-    {
-      "path": "visual_src/build.mjs",
-      "bytes": 310,
-      "sha256": "22480e737d023b7c4a6336f13745a74ecf020aac3eb88ccd90207d98b7511973"
-    },
-    {
-      "path": "wrangler.dev.toml",
-      "bytes": 652,
-      "sha256": "7b5b844946bea65baf6d8528c6a39d61fb8742d19d76bf93c181d763b70bd508"
-    },
-    {
-      "path": "wrangler.toml",
-      "bytes": 432,
-      "sha256": "5544e7110a1879e658ecfc177a8f3a64293cf3abf84ce84de52146882f7ad311"
     }
-  ]
+  ],
+  "onlineBots": {
+    "engine": "R86.0",
+    "profiles": 14,
+    "styles": 4,
+    "defaultWaitMs": 18000,
+    "maxEvaluationsPerMove": 180,
+    "pvpRatingEligible": false
+  },
+  "networkBudgetsMs": {
+    "search": 90000,
+    "queueFailure": 18000,
+    "roomRecovery": 30000
+  }
 }

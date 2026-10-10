@@ -1574,7 +1574,7 @@
             const weakChoice = Number(char.primePower) < 60 || gain < 8;
             const text = weakChoice
                 ? `Лёгкий бот активировал PRIME у «${char.name}» (${char.basePower} → ${char.primePower}). Это не обязательно лучший вариант: Easy специально допускает ошибки. Важно, что вы видите выбор бота до начала боя.`
-                : `Лёгкий бот активировал PRIME у «${char.name}» (${char.basePower} → ${char.primePower}). Это его реальное решение Easy AI, и оно показывается так же, как в обычном матче.`;
+                : `Лёгкий бот активировал PRIME у «${char.name}» (${char.basePower} → ${char.primePower}). Он сам выбрал этого бойца, как в обычном матче.`;
             r41Coach(`PRIME бота · ${index}/${count}`, text, `#bonus-team-grid [data-fighter-id="${Number(char.id)}"]`);
         }
 
@@ -1829,7 +1829,7 @@
             syncModeIdentityUI();
             initGame();
             document.getElementById('game-status').textContent = 'Учебный матч · Лёгкий бот';
-            r41Coach('Это настоящий матч против Easy AI', 'Сейчас всё работает как в обычном режиме «Лёгкий бот»: жребий, полный драфт 5×5, PRIME обеих сторон, рулетка арены и реальные выборы бойцов. Подсказки ничего не блокируют.', '#roll-init-btn');
+            r41Coach('Матч против Лёгкого бота', 'Сейчас всё работает как в обычном режиме «Лёгкий бот»: жребий, полный драфт 5×5, PRIME обеих сторон, рулетка арены и реальные выборы бойцов. Подсказки ничего не блокируют.', '#roll-init-btn');
             return true;
         }
 

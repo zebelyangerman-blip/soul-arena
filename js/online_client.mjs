@@ -37,7 +37,7 @@ let queueing = false, queueSince = null, queueTimer = null, profile = null, lead
 let leaderboardIndexing=false;
 let presence = null, secondTimer = null, clockOffset = 0;
 let duelExpanded = false, lastRenderedRoom = null, lastRenderedVersion = -1;
-const timing={http:9000,profile:3500,profileAuth:4500,profileRetry:1000,profileRetryMax:15000,queuePoll:5000,connect:9000,ack:7000,heartbeat:15000,...(local?window.SOUL_ARENA_NETWORK_TIMING||{}:{})};
+const timing={http:10000,profile:3500,profileAuth:4500,profileRetry:1000,profileRetryMax:15000,queuePoll:4000,queueRetryBase:700,queueStartRetry:500,connect:9000,ack:7000,heartbeat:15000,searchMax:90000,queueRecovery:18000,roomRecovery:30000,watchdogTick:500,roomRetry:700,autoStage:850,...(local?window.SOUL_ARENA_NETWORK_TIMING||{}:{})};
 const actionKey='soulArenaPendingActionR81';
 const authStorageKey='soulArenaSessionR81';
 const profileStorageKey='soulArenaVerifiedProfileR83';
@@ -56,12 +56,97 @@ try{
 let socketTimer=null,heartbeatTimer=null,lastSocketMessage=0,reconnectAttempt=0;
 let pendingAction=null,actionTimer=null,queueSocket=null,queueSocketTimer=null,queueHeartbeat=null;
 let enteringRoom=false,profileRetries=0,queueGeneration=0;
+const assignmentStorageKey='soulArenaAssignmentR85';
+let queueFlight=null,queueAbort=null,queueDeadlineTimer=null,queueHardDeadline=0;
+let queueFailureSince=0,queueRetryCount=0,queueSearchId=null,searchRequestedAt=0;
+let roomAbort=null,roomGeneration=0,assignedCode=null,networkPhase='idle';
+let socketRecoverySince=0,socketRecoveryTimer=null,socketRecoveryStopped=false,socketRecoveryEpoch=0;
+let autoStageTimer=null,autoStageKey=null;
+let autoStages=true;try{autoStages=localStorage.getItem('soulArenaAutoStagesR85')!=='0';}catch{}
+const diagnostics={build:'R86.0',serverBuild:null,phase:'idle',queueFailures:0,lastFailure:null};
+window.SOUL_ARENA_ONLINE_DIAGNOSTICS=Object.freeze({snapshot:()=>({...diagnostics,
+  phase:networkPhase,searchAgeMs:searchRequestedAt?Math.max(0,Date.now()-searchRequestedAt):0})});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const requestId=()=>window.crypto?.randomUUID?.()||`r81-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 function clearAction(){pendingAction=null;pending=false;clearTimeout(actionTimer);actionTimer=null;sessionStorage.removeItem(actionKey);}
 function clearSocketTimers(){clearTimeout(socketTimer);clearInterval(heartbeatTimer);socketTimer=null;heartbeatTimer=null;}
 
 function setStatus(value) { status = value; ui.connection.textContent = value; }
+function networkState(phase,message) {
+  networkPhase=phase;diagnostics.phase=phase;root.dataset.networkPhase=phase;
+  if(message)setStatus(message);
+}
+function rememberRoom(code) {
+  if(!roomPattern.test(code||''))return;
+  assignedCode=code;
+  try{sessionStorage.setItem(storageKey,code);sessionStorage.setItem(assignmentStorageKey,
+    JSON.stringify({endpoint,userId:launchIdentity,room:code,at:Date.now()}));}catch{}
+}
+function savedRoom() {
+  try {
+    const saved=JSON.parse(sessionStorage.getItem(assignmentStorageKey)||'null');
+    if(saved) {
+      if(saved.endpoint===endpoint&&saved.userId===launchIdentity&&roomPattern.test(saved.room||''))return saved.room;
+      sessionStorage.removeItem(assignmentStorageKey);sessionStorage.removeItem(storageKey);return null;
+    }
+    const legacy=sessionStorage.getItem(storageKey);return roomPattern.test(legacy||'')?legacy:null;
+  }catch{return null;}
+}
+function persistSearch() {
+  try{sessionStorage.setItem(searchKey,JSON.stringify({endpoint,userId:launchIdentity,
+    searchId:queueSearchId,startedAt:searchRequestedAt,hardDeadline:queueHardDeadline}));}catch{}
+}
+function searchStatusPath() {
+  // Older Workers ignore the query string; R85 uses it to reject late searches.
+  return '/queue/status'+(queueSearchId?'?searchId='+encodeURIComponent(queueSearchId):'');
+}
+function armQueueWatchdog() {
+  clearTimeout(queueDeadlineTimer);
+  if(!queueing)return;
+  const now=Date.now();
+  if(now>=queueHardDeadline || queueFailureSince&&now-queueFailureSince>=timing.queueRecovery) {
+    const unavailable=Boolean(queueFailureSince);
+    const ticket=queueSearchId;
+    stopQueue();pending=false;networkState('failed',unavailable?'Поиск остановлен: соединение не восстановилось':'Поиск завершён без назначения матча');renderLobby();
+    setError(unavailable?'Сервер не подтвердил поиск вовремя. Попробуйте снова или начните тренировку.':'Сервер не назначил соперника за время поиска. Можно повторить поиск или начать тренировку.');
+    if(token)api('/queue/cancel',{searchId:ticket},true,{attempts:1}).catch(()=>{});
+    return;
+  }
+  queueDeadlineTimer=setTimeout(armQueueWatchdog,timing.watchdogTick);
+}
+function scheduleQueuePoll(delay=timing.queuePoll) {
+  clearTimeout(queueTimer);
+  if(queueing&&!closed)queueTimer=setTimeout(pollQueue,Math.max(10,delay));
+}
+function scheduleAutoStages() {
+  clearTimeout(autoStageTimer);autoStageTimer=null;
+  const m=view?.match;if(!autoStages||pending||!m||!isOpen()||closed||document.hidden)return;
+  let type;
+  if(m.turn===view.seat&&m.stage==='prime'&&!m.primeRolled)type='roll_prime';
+  else if(m.turn===view.seat&&m.stage==='arena')type='spin_arena';
+  else if(m.startingPlayer===view.seat&&m.stage==='battle_roll')type='roll_battle';
+  if(!type)return;
+  const key=`${room}:${m.version}:${type}`;if(autoStageKey===key)return;
+  autoStageTimer=setTimeout(()=>{
+    if(!isOpen()||closed||document.hidden||pending||view?.match.version!==m.version)return;
+    if(window.SOUL_ARENA_VISUALS?.busy){scheduleAutoStages();return;}
+    autoStageKey=key;sendAction({type});
+  },timing.autoStage);
+}
+function armSocketRecovery() {
+  clearTimeout(socketRecoveryTimer);
+  if(closed||!room||!isOpen())return;
+  socketRecoverySince ||= Date.now();
+  socketRecoveryTimer=setTimeout(()=>{
+    if(closed||!isOpen()||!socketRecoverySince)return;
+    socketRecoveryStopped=true;socketRecoveryEpoch++;
+    clearTimeout(reconnectTimer);clearSocketTimers();connecting=false;
+    const old=socket;socket=null;old?.close(4000,'Recovery deadline');
+    networkState('failed','Матч сохранён · требуется восстановить подключение');
+    setError('Связь с матчем не восстановилась вовремя. Нажмите «Восстановить соединение».');
+    renderMatch();
+  },Math.max(10,timing.roomRecovery-(Date.now()-socketRecoverySince)));
+}
 function setError(value) {
   ui.error.textContent = value || '';
   ui.error.classList.toggle('hidden', !value);
@@ -171,17 +256,24 @@ function eventLine(event, seat) {
   return '';
 }
 function renderLobby() {
+  root.classList.remove('online-in-match');
+  const recovery=assignedCode||savedRoom();
   const savedCode=root.querySelector('#online-room-code')?.value;
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem r82-online-gate" aria-hidden="true"><svg width="35" height="35" viewBox="0 0 40 40" fill="none"><path d="M20 4L32 12V28L20 36L8 28V12Z" stroke="currentColor" stroke-width="1.5"/><path d="M20 10V30M12 16L28 24M28 16L12 24" stroke="currentColor" stroke-width="2"/></svg></div><h2>Найти соперника</h2>
-    <p>Поиск начинается в пределах ±200 рейтинга. Каждые 15 секунд диапазон расширяется: ±300 → ±400 → ±500 → ±600. Чем увереннее победа в полной серии, тем больше рейтинг: при равном Elo от +16 за 5:4 до +24 за 5:0.</p>
+    <p>Сначала ищем человека близкого уровня. Если очередь свободна, сервер подберёт виртуального соперника примерно через 18 секунд. Полная серия — до пяти побед.</p>
     <div class="online-my-rating">Ваш PvP-рейтинг <b>${profile?.rating ?? '—'}</b>
       ${profile?`<span class="online-rank-title">${rankTitle(profile.rating)}</span>`:''}
       <small>${profile?`${profile.wins} побед · ${profile.losses} поражений`: 'Появится после входа через VK/ОК'}</small>
       ${profile?`<small data-profile-freshness>${profileFresh?'Подтверждено сервером':'Сохранённые данные · сверяем с сервером'}</small>`:''}</div>
     ${renderRankProgress(profile)}
+    ${profile?.arena?`<div class="online-arena-progress"><b>Сезон арены ${escapeHtml(profile.arena.season)}</b><span>${Number(profile.arena.points)||0} очков · ${Number(profile.arena.wins)||0} побед · ${Number(profile.arena.losses)||0} поражений</span></div>`:''}
     ${profile?.history?.length?`<div class="online-history"><strong>Последние серии</strong>${profile.history.slice(0,3).map(x=>`<span>${x.won?'Победа':'Поражение'} · ${escapeHtml(formatPlayer(x.opponent))} <b>${x.delta>0?'+':''}${x.delta}</b></span>`).join('')}</div>`:''}
-    ${endpoint?button('search','ИСКАТЬ МАТЧ'): '<p class="online-note">Адрес сервера пока не указан. После публикации Worker впишите его в <code>js/online_config.js</code>.</p>'}
+    ${recovery?`<div class="online-recovery-note"><p>Назначенный матч сохранён. Можно восстановить подключение.</p>${button('resume_room','ВЕРНУТЬСЯ В МАТЧ')}</div>`:''}
+    ${endpoint?button('search',recovery?'Проверить следующий матч':'В БОЙ'): '<p class="online-note">Сервер ещё не подключён.</p>'}
+    <details class="online-mode-rules"><summary>Соперники и награды</summary><p>Арена объединяет людей и виртуальных соперников с разными игровыми стилями. PvP-Elo меняется только в рейтинговой серии с человеком. Завершённая серия с виртуальным соперником приносит 15 очков арены за победу или 5 за поражение; награды доступны за первые 12 завершённых серий в сутки. Сдача и тайм-аут очков не дают. Реванш проходит без рейтинговых наград.</p></details>
+    <label class="online-auto-option"><input type="checkbox" data-auto-stages ${autoStages?'checked':''}> Автоматический жребий</label>
+    ${button('practice','Тренировка',false,'online-btn-secondary online-btn-small')}
     ${endpoint?button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small'):''}
     ${renderRanking()}
     ${endpoint?button('retry_profile','Обновить профиль',false,'online-btn-secondary online-btn-small'):''}
@@ -210,13 +302,16 @@ function formatPlayer(id) {
 }
 function renderQueue() {
   if (!isOpen() || !queueing) return;
+  root.classList.remove('online-in-match');
   ui.content.innerHTML = `<section class="online-panel online-lobby">
     <div class="online-emblem online-search-icon">⚔️</div><h2>Ищем соперника</h2>
-    <p>Текущий диапазон: <b data-queue-gap>±${Number(queuePolicy?.ratingGap)||200}</b> Elo. Подбираем ближайшего по рейтингу игрока; разница должна подходить обоим. Если никого нет, поиск завершится через 90 секунд.</p>
+    <p>${networkPhase==='authenticating'?'Проверяем подключение и ваш сеанс.':networkPhase==='recovering'?'Восстанавливаем подтверждение поиска.':'Ищем ближайшего по уровню соперника.'} Диапазон: <b data-queue-gap>±${Number(queuePolicy?.ratingGap)||200}</b> Elo.</p>
+    <p class="online-note" data-bot-countdown>${botCountdownText()}</p>
     <p class="online-note" data-queue-expansion>${queueExpansionText()}</p>
     <p class="online-search-clock">В поиске: <b data-queue-clock>00:00</b></p>
     ${button('cancel_search','Отменить поиск',false,'online-btn-secondary')}
     ${button('ranking','Таблица лидеров',false,'online-btn-secondary online-btn-small')}
+    ${button('practice','Перейти к тренировке',false,'online-btn-secondary online-btn-small')}
     ${renderRanking()}
   </section>`;
   updateClocks();
@@ -229,11 +324,21 @@ function updateClocks() {
   }
   const expansion=root.querySelector('[data-queue-expansion]');
   if(expansion)expansion.textContent=queueExpansionText();
+  const botCountdown=root.querySelector('[data-bot-countdown]');if(botCountdown)botCountdown.textContent=botCountdownText();
   const turnClock=root.querySelector('[data-turn-clock]');
   if(turnClock && view?.match.turnDeadlineAt) {
     const left=Math.max(0,Math.ceil((view.match.turnDeadlineAt-Date.now()-clockOffset)/1000));
     turnClock.textContent=`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;
   }
+}
+function botCountdownText() {
+  if(networkPhase==='authenticating')return 'Подключение ограничено по времени — бесконечного ожидания нет.';
+  if(networkPhase==='recovering')return 'Матч начнётся после подтверждения сервера. Если связь не восстановится, поиск остановится.';
+  if(queuePolicy?.allowBots&&Number.isFinite(queuePolicy.botAt)) {
+    const left=Math.max(0,Math.ceil((queuePolicy.botAt-Date.now()-clockOffset)/1000));
+    return left?`Если очередь свободна, соперник арены подключится примерно через ${left} сек.`:'Сервер подбирает соперника арены…';
+  }
+  return 'Ждём подтверждения очереди. Поиск можно отменить в любой момент.';
 }
 function queueExpansionText() {
   if(!queuePolicy?.nextExpansionAt)return queuePolicy?.ratingGap>=600?'Максимальный диапазон поиска: ±600 Elo.':'Проверяем очередь игроков…';
@@ -242,9 +347,12 @@ function queueExpansionText() {
 }
 function renderMatch() {
   if (!view || !isOpen()) return;
+  root.classList.add('online-in-match');
   const {match:m,seat} = view;
   const mine = isMyTurn(m,seat);
-  const otherLabel = m.mode==='friend'?'Друг':'Соперник';
+  const opponentProfile=m.participants?.[1-seat];
+  const opponentName=opponentProfile?.name||(m.mode==='friend'?'Друг':'Соперник');
+  const otherLabel=escapeHtml(opponentName);
   const oldStage = ui.content.querySelector('[data-online-stage]')?.dataset.onlineStage;
   const oldScroll = root.scrollTop;
   const focused = document.activeElement?.dataset;
@@ -300,10 +408,10 @@ function renderMatch() {
   if (m.stage === 'battle') {
     const theirPlacement=m.placements[1-seat];
     const myPlacement=m.placements[seat];
-    const actionHint=mine?(theirPlacement!==null?`${otherLabel} выставил бойца ${fighterName(theirPlacement)}. Выберите контрпик ниже.`:
+    const actionHint=mine?(theirPlacement!==null?`${opponentName} выставил бойца ${fighterName(theirPlacement)}. Выберите контрпик ниже.`:
       'Выберите бойца из своей команды ниже и подтвердите выход.'):
-      (myPlacement!==null?`Вы выставили ${fighterName(myPlacement)}. ${otherLabel} выбирает ответ.`:
-      `${otherLabel} выбирает первого бойца. Следите за командами.`);
+      (myPlacement!==null?`Вы выставили ${fighterName(myPlacement)}. ${opponentName} выбирает ответ.`:
+      `${opponentName} выбирает первого бойца. Следите за командами.`);
     body = `<div class="online-focus online-battle-focus">${arenaImage?`<div class="online-battle-backdrop" aria-hidden="true">${arenaImage}</div>`:''}
       <span class="online-step">ДУЭЛЬ ${m.round}</span>
       <h2>${mine?'Ваш ход: выставьте бойца':`${otherLabel} выставляет бойца`}</h2>
@@ -315,6 +423,7 @@ function renderMatch() {
   if (m.stage === 'match_end' || m.stage === 'series_end') {
     const series=m.stage==='series_end';
     const won=(series?m.seriesWinner:m.matchWinner)===seat;
+    const interrupted=series&&m.seriesEndReason==='server_error';
     const result=m.ratingResult;
     const delta=result?.delta?.[seat]||0;
     const reason=series&&m.lastAction?.type==='timeout'?
@@ -323,14 +432,15 @@ function renderMatch() {
     const ratingText=!m.ranked||!series?'':!m.ratingFinalized?
       '<p>Сервер сохраняет результат серии и рейтинг…</p>':result?.rated?
       `<div class="online-result-rating">Ваш PvP-рейтинг: <b>${result.after[seat]}</b> <strong>${delta>0?'+':''}${delta}</strong><span class="online-rank-title">${rankTitle(result.after[seat])}</span></div>${won&&result.bonus>0?`<p>Бонус за уверенную победу: +${result.bonus} Elo уже включён в итог.</p>`:''}`:
+      result?.kind==='arena_ai'?`<div class="online-result-rating"><b>+${Number(result.points)||0} очков арены</b><span>В сезоне: ${Number(result.totalPoints)||0} · PvP-Elo сохранён</span></div><p class="online-note">${result.endReason==='server_error'?'Серия прервана без изменения прогресса.':result.points?'Награда подтверждена сервером.':result.endReason==='completed'?'Лимит наград на сегодня достигнут.':'За сдачу и тайм-аут очки не начисляются.'}</p>`:
       '<p>Повторная встреча: рейтинг не изменился.</p>';
     body=`<div class="online-focus online-finish"><span class="online-step">${series?'СЕРИЯ ДО ПЯТИ ПОБЕД':'МАТЧ'}</span>
-      <h2>${won?'Победа!':'Поражение'}</h2><p>${reason||(series?'Серия завершена.':'Матч завершён. Следующий начнётся, когда оба игрока будут готовы.')}</p>
+      <h2>${interrupted?'Матч остановлен':won?'Победа!':'Поражение'}</h2><p>${interrupted?'Сервер не смог продолжить серию. Поражение не засчитано; очки и PvP-рейтинг сохранены.':reason||(series?'Серия завершена.':'Матч завершён. Следующий начнётся, когда оба игрока будут готовы.')}</p>
       ${ratingText}${m.ready[seat]?'<p>Вы готовы. Ждём соперника.</p>':button('ready',series&&m.ranked?'Реванш без рейтинга':series?'Новая серия':'Следующий матч',series&&m.ranked&&!m.ratingFinalized)}
       ${series&&m.mode!=='friend'?button('search_again','Найти нового соперника',false,'online-btn-secondary'):''}
     </div>`;
   }
-  const modeLabel=m.mode==='matchmaking'?(m.ratingEligible?'РЕЙТИНГОВАЯ СЕРИЯ':'ВСТРЕЧА БЕЗ РЕЙТИНГА'):
+  const modeLabel=m.opponentType==='ai'?(m.ranked?'СЕРИЯ АРЕНЫ · ПРОГРЕСС СЕЗОНА':'РЕВАНШ АРЕНЫ · БЕЗ НАГРАД'):m.mode==='matchmaking'?(m.ratingEligible?'РЕЙТИНГОВАЯ СЕРИЯ':'ВСТРЕЧА БЕЗ РЕЙТИНГА'):
     m.mode==='rematch'?'РЕВАНШ БЕЗ РЕЙТИНГА':'ИГРА С ДРУГОМ · БЕЗ РЕЙТИНГА';
   const history=(Array.isArray(m.events)?m.events:[]).filter(event=>event.matchNumber===m.matchNumber)
     .map(event=>eventLine(event,seat)).filter(Boolean).slice(-8).reverse();
@@ -341,6 +451,7 @@ function renderMatch() {
       <div class="online-score-side"><small>${otherLabel.toUpperCase()}</small><b>${m.wins[1-seat]}</b></div></div>
     <div class="online-roomline">${m.mode==='friend'?`<span>Комната <b>${escapeHtml(room)}</b></span>${button('copy','Копировать код',false,'online-btn-small')}`:
       `<span>Матч с соперником</span>`}<span class="online-presence" data-online-presence>${presence===false?'Соперник переподключается':presence===true?'Соперник в сети':''}</span></div>
+    ${opponentProfile?.name?`<details class="online-opponent-profile"><summary><span class="online-profile-avatar">${portrait(opponentProfile.avatarId)}</span><b>${escapeHtml(opponentProfile.name)}</b><span>Профиль соперника ▾</span></summary><p>Виртуальный соперник арены. Стиль: ${escapeHtml({pressure:'напористый',patient:'осторожный',tactician:'тактический',explorer:'экспериментирующий'}[opponentProfile.style]||'сбалансированный')}. Играет по общим правилам; будущие карты ему неизвестны.</p></details>`:''}
     ${m.turnDeadlineAt?`<div class="online-turn-clock">${mine?'ВАШ ХОД':'ХОД СОПЕРНИКА'} · осталось <b data-turn-clock>03:00</b></div>`:''}
     <div class="online-force-strip"><span>Вы <b>${ownList.filter(c=>c.state<4).length}/5</b></span><i>${m.stage==='draft'?'ОТРЯДЫ':'В СТРОЮ'}</i><span><b>${theirList.filter(c=>c.state<4).length}/5</b> ${otherLabel}</span></div>
     <div class="online-mini-score">${miniTeam(ownList,'Ваши бойцы','own')}${miniTeam(theirList,`Бойцы ${m.mode==='friend'?'друга':'соперника'}`,'other')}</div>
@@ -350,7 +461,7 @@ function renderMatch() {
       <div class="online-roster">${team(ownList,primeChoose||placeChoose,primeChoose)}</div>
       ${primeChoose?`<div class="online-team-action">${button('choose_prime','Подтвердить Прайм',primeSelection.size!==m.primeCounts[seat])}</div>`:''}
       ${placeChoose?`<div class="online-team-action">${button('confirm_place','Подтвердить выход бойца',battleSelection===null)}</div>`:''}</section>
-      <div class="online-center">${renderDuel(m.lastDuel)}${body}</div>
+      <div class="online-center">${body}${renderDuel(m.lastDuel)}</div>
       <section class="online-other-team online-team-panel"><h3>Бойцы ${m.mode==='friend'?'друга':'соперника'} <small>${theirList.filter(c=>c.state<4).length} в строю</small></h3>
       <div class="online-roster">${team(theirList,false,false)}</div></section>
     </div>
@@ -370,6 +481,7 @@ function renderMatch() {
     }
   } else root.scrollTop=0;
   updateClocks();
+  scheduleAutoStages();
 }
 
 async function requestApi(path,payload,authorized,method,options={}) {
@@ -378,9 +490,12 @@ async function requestApi(path,payload,authorized,method,options={}) {
   let renewed=false;const attempts=options.attempts??2;
   for(let attempt=0;attempt<attempts;attempt++) {
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),options.timeout??timing.http);
+    const relay=()=>controller.abort();options.signal?.addEventListener('abort',relay,{once:true});
+    if(options.signal?.aborted)controller.abort();
     try {
       const headers={'Content-Type':'application/json',...(authorized?{Authorization:`Bearer ${token}`}:{})};
       const response=await fetch(endpoint+path,{method,headers,signal:controller.signal,...(method==='POST'?{body:JSON.stringify(stablePayload)}:{})});
+      const serverBuild=response.headers?.get?.('X-Arena-Build');if(serverBuild)diagnostics.serverBuild=serverBuild;
       let result;try{result=await response.json();}catch{throw Object.assign(new Error('Сервер вернул непонятный ответ'),{retryable:true});}
       if(!response.ok) {
         if(response.status===401 && authorized && !renewed) {
@@ -391,11 +506,12 @@ async function requestApi(path,payload,authorized,method,options={}) {
       return result;
     }catch(error){
       const aborted=error.name==='AbortError';
+      if(options.signal?.aborted)throw error;
       if(aborted)error=Object.assign(new Error('Сервер не ответил вовремя. Проверяем подключение.'),{retryable:true});
       if(error instanceof TypeError)error=Object.assign(new Error('Нет связи с сервером. Проверьте интернет.'),{retryable:true});
       if(attempt===attempts-1 || !error.retryable || error.code==='SERVER_BUSY')throw error;
       clearTimeout(timer);await pause(450+Math.random()*350);
-    }finally{clearTimeout(timer);}
+    }finally{clearTimeout(timer);options.signal?.removeEventListener('abort',relay);}
   }
 }
 async function api(path,payload,authorized=true,options={}){return requestApi(path,payload,authorized,'POST',options);}
@@ -407,6 +523,7 @@ async function authenticate(force = false,options={}) {
     const params=new URLSearchParams(location.search);
     const debugPlayer=local&&/^\d+$/.test(params.get('debugPlayer')||'')?params.get('debugPlayer'):undefined;
     const result=await api('/session',{launch:location.search,includeProfile:true,...(debugPlayer?{debugPlayer}:{})},false,options);
+    if(result.build)diagnostics.serverBuild=result.build;
     token=result.token;expiresAt=result.expiresAt||Date.now()+11*3600_000;
     if(launchIdentity)try{sessionStorage.setItem(authStorageKey,JSON.stringify({token,expiresAt,endpoint,userId:result.userId||launchIdentity}));}catch{}
     if(result.profile && validProfile(result.profile))acceptProfile(result.profile);
@@ -421,7 +538,7 @@ async function refreshProfile() {
     await authenticate(false,{timeout:timing.profileAuth,attempts:1});
     const result=profileFresh && profileRevision!==revision?profile:
       acceptProfile(await apiGet('/rating/me',{timeout:timing.profile,attempts:1}));
-    if(isOpen() && !view && !queueing && !pending){renderLobby();setStatus('Готово к поиску соперника');setError('');}
+    if(isOpen() && !view && !queueing && !pending&&networkPhase==='idle'){renderLobby();setStatus('Готово к поиску соперника');setError('');}
     return result;
   })();
   try{return await profileFlight;}finally{profileFlight=null;}
@@ -429,6 +546,7 @@ async function refreshProfile() {
 function loadProfile() {
   clearTimeout(profileRetryTimer);profileRetryTimer=null;
   if(!endpoint || closed || !isOpen() || view || queueing || pending)return;
+  networkState('idle');
   profileFresh=false;renderLobby();setStatus(profile?'Сверяем ваш PvP-профиль с сервером…':'Проверяем ваш PvP-профиль…');
   refreshProfile().catch(error=>{
     if(closed || !isOpen() || view || queueing)return;
@@ -445,6 +563,8 @@ function stopQueue() {
   queueGeneration++;
   queueing=false;queueSince=null;queuePolicy=null;
   clearTimeout(queueTimer);queueTimer=null;
+  clearTimeout(queueDeadlineTimer);queueDeadlineTimer=null;queueAbort?.abort();queueAbort=null;queueFlight=null;
+  queueFailureSince=0;queueRetryCount=0;queueSearchId=null;searchRequestedAt=0;queueHardDeadline=0;
   sessionStorage.removeItem(searchKey);
   clearTimeout(queueSocketTimer);clearInterval(queueHeartbeat);queueSocket?.close(1000,'Search complete');queueSocket=null;
 }
@@ -452,22 +572,25 @@ async function handleQueue(response) {
   if(Number.isFinite(response.serverNow)) clockOffset=response.serverNow-Date.now();
   if(response.status==='matched') {
     if(enteringRoom)return;
-    stopQueue();
+    if(!roomPattern.test(response.room||''))throw Object.assign(new Error('Сервер не подтвердил комнату матча'),{retryable:true});
+    rememberRoom(response.room);stopQueue();
     pending=false;
     await enterRoom(response.room,false);
   } else if(response.status==='waiting') {
     queueing=true;queueSince=response.since||Date.now();
     queuePolicy=response;
+    queueFailureSince=0;queueRetryCount=0;setError('');networkState('queued','Поиск соперника подтверждён сервером');
+    if(Number.isFinite(response.expiresAt))queueHardDeadline=Math.min(queueHardDeadline||Infinity,response.expiresAt-clockOffset);
     if(response.profile && validProfile(response.profile))acceptProfile(response.profile);
     clearTimeout(profileRetryTimer);profileRetryTimer=null;
-    sessionStorage.setItem(searchKey,'1');
+    persistSearch();armQueueWatchdog();
     pending=false;renderQueue();
     clearTimeout(queueTimer);
     connectQueueSocket();
     // Polling also re-evaluates waiting pairs when their rating windows widen.
-    queueTimer=setTimeout(pollQueue,timing.queuePoll);
+    scheduleQueuePoll(Math.min(timing.queuePoll,Math.max(10,Number(response.pollAfterMs)||timing.queuePoll)));
   } else {
-    stopQueue();pending=false;renderLobby();
+    stopQueue();pending=false;networkState('idle');renderLobby();setError('');
     setStatus(response.status==='expired'?'Пока соперников нет. Попробуйте ещё раз.':'Поиск был прерван. Нажмите «Искать матч» снова.');
   }
 }
@@ -497,43 +620,61 @@ function connectQueueSocket() {
   ws.onerror=()=>{};
 }
 async function pollQueue() {
-  if(!queueing) return;
+  if(!queueing || queueFlight) return;
   const generation=queueGeneration;
+  const flight=(async()=>{
   try {
-    const response=await apiGet('/queue/status');
+    await authenticate(false,{attempts:1,timeout:timing.profileAuth});
+    if(generation!==queueGeneration||closed||!queueing)return;
+    const response=queuePolicy?
+      await apiGet(searchStatusPath(),{attempts:1,signal:queueAbort?.signal}):
+      await api('/queue/join',{searchId:queueSearchId,allowBots:true},true,{attempts:1,signal:queueAbort?.signal});
     if(generation!==queueGeneration || !queueing)return;
     await handleQueue(response);
   } catch(error) {
     if(generation!==queueGeneration || closed || !queueing)return;
+    diagnostics.queueFailures++;diagnostics.lastFailure={at:Date.now(),code:error.code||'NETWORK_TIMEOUT'};
+    queueFailureSince ||= Date.now();queueRetryCount++;
+    networkState('recovering','Восстанавливаем подключение к поиску…');renderQueue();
     setError(`Поиск временно недоступен: ${error.message}`);
-    if(queueing) queueTimer=setTimeout(async()=>{
-      try { await authenticate(); pollQueue(); }
-      catch { queueTimer=setTimeout(pollQueue,5000); }
-    },5000);
+    if(error.retryable===false || error.status===401 || error.status===400) {
+      stopQueue();pending=false;networkState('failed','Требуется новый вход через VK или ОК');renderLobby();setError(error.message);return;
+    }
+    scheduleQueuePoll(Math.max(Number(error.retryAfterMs)||0,Math.min(6000,timing.queueRetryBase*2**Math.min(queueRetryCount,3))));
   }
+  })();
+  queueFlight=flight;try{await flight;}finally{if(queueFlight===flight)queueFlight=null;}
 }
 async function startSearch() {
   if(pending||queueing) return;
   const generation=++queueGeneration;
   clearTimeout(profileRetryTimer);profileRetryTimer=null;
-  pending=true;setError('');setStatus('Подключаем поиск игроков…');
+  pending=false;queueing=true;queueSince=Date.now();searchRequestedAt=Date.now();queueHardDeadline=Date.now()+timing.searchMax;
+  queueSearchId=requestId();queueAbort=new AbortController();queueFailureSince=Date.now();
+  persistSearch();setError('');networkState('authenticating','Подключаем поиск игроков…');renderQueue();armQueueWatchdog();
   try {
     if(!endpoint) throw new Error('Адрес сервера пока не задан');
-    await authenticate();
-    const response=await api('/queue/join');
+    await authenticate(false,{attempts:1,timeout:timing.profileAuth});
+    if(generation!==queueGeneration || closed)return;
+    const response=await api('/queue/join',{searchId:queueSearchId,allowBots:true},true,{attempts:1,signal:queueAbort?.signal});
     if(generation!==queueGeneration || closed)return;
     await handleQueue(response);
-    if(queueing) setStatus('Поиск соперника запущен');
+    if(queueing)networkState('queued','Поиск соперника запущен');
   } catch(error) {
     if(generation!==queueGeneration || closed)return;
-    pending=false;setStatus('Нет подключения');setError(error.message);
+    if(error.retryable) {
+      networkState('recovering','Восстанавливаем подтверждение поиска…');renderQueue();setError(error.message);
+      scheduleQueuePoll(Math.max(timing.queueStartRetry,Number(error.retryAfterMs)||0));return;
+    }
+    const ticket=queueSearchId;stopQueue();pending=false;networkState('failed','Нет подключения');renderLobby();setError(error.message);
+    if(token)api('/queue/cancel',{searchId:ticket},true,{attempts:1}).catch(()=>{});
   }
 }
 async function cancelSearch() {
   if(!queueing) return;
-  stopQueue();renderLobby();setStatus('Поиск остановлен');
+  const ticket=queueSearchId;stopQueue();pending=false;renderLobby();networkState('idle','Поиск остановлен');setError('');
   if(!profileFresh)loadProfile();
-  try { await api('/queue/cancel'); }
+  try { await authenticate();await api('/queue/cancel',{searchId:ticket},true,{attempts:1}); }
   catch(error) {
     setError(error.message);
     // If a match was created just before cancellation, restore the assignment.
@@ -543,17 +684,22 @@ async function cancelSearch() {
 }
 function resetRoom() {
   clearSocketTimers();clearAction();window.SOUL_ARENA_VISUALS?.cancel?.();
-  clearTimeout(reconnectTimer);socket?.close(1000,'Left room');socket=null;
+  clearTimeout(reconnectTimer);const oldSocket=socket;socket=null;oldSocket?.close(1000,'Left room');
+  roomGeneration++;roomAbort?.abort();roomAbort=null;
+  clearTimeout(socketRecoveryTimer);socketRecoverySince=0;socketRecoveryStopped=false;socketRecoveryEpoch++;
+  clearTimeout(autoStageTimer);autoStageKey=null;assignedCode=null;
   room=null;view=null;pending=false;connecting=false;presence=null;
   battleSelection=null;primeSelection.clear();duelExpanded=false;lastRenderedRoom=null;lastRenderedVersion=-1;
   sessionStorage.removeItem(storageKey);
+  sessionStorage.removeItem(assignmentStorageKey);
   renderLobby();setStatus('Выберите следующую игру');
   loadProfile();
 }
 function connectSocket() {
-  if (!room || !isOpen() || closed || socket?.readyState === WebSocket.OPEN || connecting) return;
+  if (!room || !isOpen() || closed || socketRecoveryStopped || socket?.readyState === WebSocket.OPEN || connecting) return;
   connecting = true;
-  setStatus('Подключаемся к матчу…');
+  armSocketRecovery();
+  networkState('connecting','Подключаемся к матчу…');
   const url = new URL(endpoint + `/room/${room}/ws`);
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(url,['soul-online-v1',`token.${token}`]);
@@ -588,13 +734,15 @@ function connectSocket() {
         if(!message.match || !Number.isInteger(message.match.version) ||
           (view?.match && message.match.version<view.match.version)) return;
         reconnectAttempt=0;
+        socketRecoverySince=0;socketRecoveryStopped=false;clearTimeout(socketRecoveryTimer);networkState('playing');
         if(Number.isFinite(message.serverNow)) clockOffset=message.serverNow-Date.now();
         const prior=view?.match;
         if (prior?.stage !== message.match.stage || prior?.turn !== message.match.turn) primeSelection.clear();
         if (prior?.stage !== message.match.stage || prior?.turn !== message.match.turn ||
           prior?.round !== message.match.round) battleSelection=null;
         view={match:message.match,seat:message.seat};
-        if(pendingAction && message.match.version>pendingAction.action.version)clearAction();
+        if(pendingAction && ((message.actionReceipts||[]).some(r=>r.requestId===pendingAction.requestId)||
+          message.match.lastAction?.requestId===pendingAction.requestId))clearAction();
         else if(pendingAction && ws.readyState===WebSocket.OPEN) {
           if(Date.now()-(pendingAction.createdAt||0)>45000) {
             clearAction();setError('Подтверждение хода не получено. Состояние восстановлено — проверьте поле перед следующим ходом.');
@@ -610,6 +758,8 @@ function connectSocket() {
           message.match.stage==='match_end'?'Матч завершён':
           message.match.turn===message.seat?'Ваш ход':'Ждём соперника');
         renderMatch();
+        if(prior?.stage!==message.match.stage&&['match_end','series_end'].includes(message.match.stage))
+          window.SOUL_ARENA_VISUALS?.cancel?.();
         window.SOUL_ARENA_VISUALS?.onlineTransition?.(prior,message.match,message.seat,room);
         if(message.match.stage==='series_end' && message.match.ratingFinalized &&
           (!prior || !prior.ratingFinalized || prior.stage!=='series_end'))
@@ -621,14 +771,16 @@ function connectSocket() {
     if (socket !== ws) return;
     clearSocketTimers();clearTimeout(actionTimer);socket=null;connecting=false;pending=Boolean(pendingAction);
     if (closed || !isOpen()) return;
-    if(event?.code===4001){setStatus('Матч открыт на другом устройстве');setError('Закройте второе окно игры и нажмите «Восстановить соединение».');renderMatch();return;}
-    setStatus('Соединение прервалось; восстанавливаем…');
+    if(event?.code===4001){socketRecoveryStopped=true;socketRecoveryEpoch++;setStatus('Матч открыт на другом устройстве');setError('Закройте второе окно игры и нажмите «Восстановить соединение».');renderMatch();return;}
+    networkState('recovering','Соединение прервалось; восстанавливаем…');armSocketRecovery();
     clearTimeout(reconnectTimer);
+    const recoveryEpoch=socketRecoveryEpoch;
     reconnectTimer=setTimeout(async () => {
-      try { await authenticate(); connectSocket(); }
+      try { await authenticate();if(recoveryEpoch===socketRecoveryEpoch&&!socketRecoveryStopped)connectSocket(); }
       catch(error) {
+        if(recoveryEpoch!==socketRecoveryEpoch||socketRecoveryStopped)return;
         setError(error.message);
-        if(error.status===401){setStatus('Перезапустите игру через VK или ОК для нового сеанса');renderMatch();}
+        if(error.status===401){clearTimeout(socketRecoveryTimer);networkState('failed','Перезапустите игру через VK или ОК для нового сеанса');renderMatch();}
         else reconnectTimer=setTimeout(connectSocket,5000);
       }
     },Math.min(10000,700*2**Math.min(reconnectAttempt++,4))+Math.random()*500);
@@ -638,25 +790,48 @@ function connectSocket() {
 async function enterRoom(code, create=false) {
   if (pending || enteringRoom) return;
   enteringRoom=true;
-  pending=true; setError(''); setStatus('Проверяем соединение с сервером…');
+  const generation=++roomGeneration;
+  roomAbort?.abort();roomAbort=new AbortController();
+  const deadline=Date.now()+timing.roomRecovery;
+  const payload=create?{requestId:requestId()}:{};
+  if(!create)rememberRoom(code);
+  pending=true; setError('');networkState('joining','Проверяем соединение с сервером…');
+  if(!view)ui.content.innerHTML=`<section class="online-panel online-lobby"><div class="online-emblem online-search-icon">⚔️</div><h2>${create?'Создаём комнату':'Подключаемся к матчу'}</h2><p>Назначение сохраняется. При кратком обрыве попробуем подключиться повторно.</p>${button('stop_connect','Вернуться в меню',false,'online-btn-secondary')}</section>`;
   try {
     if (!endpoint) throw new Error('Адрес сервера пока не задан');
-    await authenticate();
     const path=create?'/room/create':`/room/${code}/join`;
     let result;
-    try { result=await api(path); }
-    catch(error) {
-      if(!/Сеанс истёк/.test(error.message)) throw error;
-      await authenticate(true);
-      result=await api(path);
+    for(let attempt=0;;attempt++) {
+      if(generation!==roomGeneration||closed)return;
+      try {
+        await authenticate(false,{timeout:Math.min(timing.profileAuth,Math.max(10,deadline-Date.now())),attempts:1});
+        if(generation!==roomGeneration||closed)return;
+        result=await api(path,payload,true,{attempts:1,signal:roomAbort.signal,timeout:Math.min(timing.http,Math.max(10,deadline-Date.now()))});
+        break;
+      }catch(error) {
+        if(generation!==roomGeneration||closed)return;
+        if(!error.retryable||Date.now()>=deadline||attempt>=3)throw error;
+        networkState('joining','Матч сохранён · повторяем подключение…');
+        await pause(Math.min(Math.max(10,deadline-Date.now()),Math.max(Number(error.retryAfterMs)||0,Math.min(4000,timing.roomRetry*2**attempt))));
+      }
     }
+    if(generation!==roomGeneration||closed)return;
     if(Number.isFinite(result.serverNow)) clockOffset=result.serverNow-Date.now();
     room = create?result.room:code;
+    if(!roomPattern.test(room||'')||!result.match||![0,1].includes(result.seat))throw new Error('Сервер не подтвердил состояние комнаты');
     try{const stored=JSON.parse(sessionStorage.getItem(actionKey)||'null');if(stored?.room===room)pendingAction={...stored,replayed:false};}catch{}
-    sessionStorage.setItem(storageKey,room);
-    view=result; closed=false; pending=Boolean(pendingAction); presence=null; renderMatch(); connectSocket();
-  } catch(error) { pending=false; setStatus('Нет подключения'); setError(error.message); }
-  finally{enteringRoom=false;}
+    rememberRoom(room);
+    view=result; closed=false;socketRecoveryStopped=false;socketRecoveryEpoch++;socketRecoverySince=0;
+    pending=Boolean(pendingAction); presence=null; renderMatch(); connectSocket();
+  } catch(error) {
+    if(generation!==roomGeneration||closed)return;
+    pending=false;networkState('failed','Нет подключения');
+    if(!error.retryable&&(/Комната не найдена|Доступ к комнате|Комната занята/.test(error.message)||error.status===404)) {
+      assignedCode=null;sessionStorage.removeItem(storageKey);sessionStorage.removeItem(assignmentStorageKey);
+    }
+    if(!view)renderLobby();setError(error.message);
+  }
+  finally{if(generation===roomGeneration){enteringRoom=false;roomAbort=null;}}
 }
 function armActionTimer() {
   clearTimeout(actionTimer);
@@ -676,7 +851,9 @@ function armActionTimer() {
 function sendAction(action) {
   if (pending || socket?.readyState !== WebSocket.OPEN || !view) { setError('Подождите соединения с сервером'); return; }
   pending=true; setError('');setStatus('Отправляем ход на сервер…');renderMatch();
-  pendingAction={room,requestId:requestId(),action:{...action,version:view.match.version},replayed:false,createdAt:Date.now(),retries:0};
+  const scope=action.type==='ready'?{stage:view.match.stage,matchNumber:view.match.matchNumber,
+    seriesNumber:view.match.seriesNumber}:{};
+  pendingAction={room,requestId:requestId(),action:{...action,...scope,version:view.match.version},replayed:false,createdAt:Date.now(),retries:0};
   sessionStorage.setItem(actionKey,JSON.stringify(pendingAction));
   try { socket.send(JSON.stringify({type:'action',requestId:pendingAction.requestId,action:pendingAction.action}));armActionTimer(); }
   catch {socket?.close(4000,'Send failed');setError('Не удалось отправить ход. Проверяем соединение.');}
@@ -684,7 +861,9 @@ function sendAction(action) {
 function leave() {
   clearSocketTimers();clearTimeout(actionTimer);clearTimeout(profileRetryTimer);clearInterval(secondTimer);secondTimer=null;
   window.SOUL_ARENA_VISUALS?.cancel?.();
-  if(queueing) {stopQueue();api('/queue/cancel').catch(()=>{});}
+  if(queueing) {const ticket=queueSearchId;stopQueue();api('/queue/cancel',{searchId:ticket},true,{attempts:1}).catch(()=>{});}
+  roomGeneration++;roomAbort?.abort();roomAbort=null;enteringRoom=false;
+  clearTimeout(socketRecoveryTimer);socketRecoverySince=0;clearTimeout(autoStageTimer);
   root.classList.add('hidden'); closed=true;pending=false;clearTimeout(reconnectTimer);
   socket?.close(1000,'Closed by player'); socket=null; connecting=false;
   window.closeGameModeSelect?.();
@@ -696,11 +875,20 @@ window.openOnlineArena = function() {
   if (view && room) {pending=Boolean(pendingAction);renderMatch();connectSocket();return;}
   renderLobby();
   if(!secondTimer) secondTimer=setInterval(updateClocks,1000);
-  const saved = sessionStorage.getItem(storageKey);
+  const saved = savedRoom();
   if (saved && roomPattern.test(saved) && endpoint) enterRoom(saved);
   else if(sessionStorage.getItem(searchKey) && endpoint) {
-    queueing=true;renderQueue();
-    authenticate().then(pollQueue).catch(error=>{stopQueue();renderLobby();setError(error.message);});
+    let record;try{record=JSON.parse(sessionStorage.getItem(searchKey));}catch{}
+    if(record&&typeof record==='object'&&(record.endpoint!==endpoint||record.userId!==launchIdentity)) {
+      sessionStorage.removeItem(searchKey);loadProfile();return;
+    }
+    queueGeneration++;queueing=true;queueSearchId=record?.searchId||null;
+    searchRequestedAt=record?.startedAt||Date.now();queueSince=searchRequestedAt;
+    queueHardDeadline=record?.hardDeadline||Date.now()+timing.searchMax;
+    queueFailureSince=Date.now();queueAbort=new AbortController();networkState('recovering','Восстанавливаем сохранённый поиск…');renderQueue();armQueueWatchdog();
+    if(!queueing)return;
+    // A restored search checks its existing ticket before creating anything.
+    queuePolicy={restored:true};pollQueue();
   } else {
     setStatus(endpoint?'Проверяем ваш PvP-профиль…':'Ожидается адрес опубликованного сервера');
     loadProfile();
@@ -718,9 +906,17 @@ root.addEventListener('click',event => {
   if (!target || !root.contains(target)) return;
   const action = target.dataset.action;
   if (action==='close') return leave();
+  if(action==='practice'){leave();window.openCpuPreview?.();return;}
+  if(action==='resume_room')return enterRoom(assignedCode||savedRoom());
+  if(action==='stop_connect') {
+    roomGeneration++;roomAbort?.abort();roomAbort=null;enteringRoom=false;pending=false;
+    networkState('idle','Подключение остановлено · назначение сохранено');renderLobby();return;
+  }
   if(action==='retry_profile')return loadProfile();
   if(action==='reconnect'){
-    closed=false;clearSocketTimers();socket?.close();socket=null;connecting=false;clearTimeout(reconnectTimer);
+    socketRecoveryStopped=false;socketRecoveryEpoch++;socketRecoverySince=0;closed=false;
+    clearTimeout(socketRecoveryTimer);armSocketRecovery();
+    clearSocketTimers();const oldSocket=socket;socket=null;oldSocket?.close();connecting=false;clearTimeout(reconnectTimer);
     authenticate().then(connectSocket).catch(error=>setError(error.message));return;
   }
   if (action==='search') return startSearch();
@@ -777,7 +973,7 @@ root.addEventListener('click',event => {
 function resumeConnection(){
   if(!isOpen() || closed || document.hidden)return;
   if(room){
-    if(socket?.readyState===WebSocket.OPEN){lastSocketMessage=Date.now();socket.send(JSON.stringify({type:'sync'}));}
+    if(socket?.readyState===WebSocket.OPEN){lastSocketMessage=Date.now();socket.send(JSON.stringify({type:'sync'}));scheduleAutoStages();}
     else {clearTimeout(reconnectTimer);connecting=false;socket?.close();socket=null;authenticate().then(connectSocket).catch(error=>setError(error.message));}
   }else if(queueing){clearTimeout(queueTimer);authenticate().then(pollQueue).catch(error=>setError(error.message));}
   else loadProfile();
@@ -787,3 +983,8 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)resumeConn
 window.addEventListener('pageshow',event=>{if(event.persisted)resumeConnection();});
 
 root.addEventListener('change',event=>{if(event.target.matches('[data-visual-quality]'))window.SOUL_ARENA_VISUALS?.setQuality?.(event.target.value);});
+root.addEventListener('change',event=>{
+  if(event.target.matches('[data-auto-stages]')) {
+    autoStages=event.target.checked;localStorage.setItem('soulArenaAutoStagesR85',autoStages?'1':'0');scheduleAutoStages();
+  }
+});
