@@ -1,0 +1,18 @@
+Third-party libraries bundled with Bleach R82
+
+PixiJS 8.22.0: https://github.com/pixijs/pixijs — MIT, see PixiJS-MIT.txt
+Anime.js 4.5.0: https://github.com/juliangarnier/anime — MIT, see AnimeJS-MIT.txt
+VK Bridge 2.15.12: https://github.com/VKCOM/vk-bridge — MIT, see VK-Bridge-MIT.txt
+
+js/battle_scene_r81.js is built from visual_src/battle-scene.mjs.
+js/vendor/vk-bridge-2.15.12.min.js is the unmodified upstream distribution.
+Original game portraits, names, audio and existing artwork are preserved; the above licenses apply only to these third-party software libraries.
+
+Transitive packages included in the visual bundle:
+@pixi/colord 2.9.6 — MIT; see pixi-colord-LICENSE.txt (upstream colord 2.9.3 copyright and license, author Vlad Shilov; package declares MIT).
+@xmldom/xmldom 0.8.15 — MIT; see xmldom-xmldom-LICENSE.txt
+earcut 3.2.4 — ISC; see earcut-LICENSE.txt
+eventemitter3 5.0.4 — MIT; see eventemitter3-LICENSE.txt
+ismobilejs 1.1.1 — MIT; see ismobilejs-LICENSE.txt
+parse-svg-path 0.2.0 — MIT; see parse-svg-path-LICENSE.txt
+tiny-lru 11.4.7 — BSD-3-Clause; see tiny-lru-LICENSE.txt
